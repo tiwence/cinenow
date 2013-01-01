@@ -60,4 +60,6 @@
     <string name="action_select_all">Sélectionner tout</string>
     <string name="location">Localisation en cours...</string>
     <string name="in">Dans</string>
+    <string name="one_theater_selected">1 cinéma sélectionné</string>
+    <string name="theaters_selected">%1$d cinémas sélectionnés</string>
 </resources>

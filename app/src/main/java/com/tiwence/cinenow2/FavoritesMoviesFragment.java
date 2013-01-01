@@ -349,7 +349,10 @@ public class FavoritesMoviesFragment extends android.support.v4.app.Fragment imp
                 });
             }
 
+
             movieTitleView.setText(movie.title);
+            movieTitleView.setTag(movie);
+            movieTitleView.setOnClickListener(FavoritesMoviesFragment.this);
             movieInfosView.setText(movie.infos_g);
 
             nextShowTimesLayout.removeAllViews();
@@ -425,7 +428,20 @@ public class FavoritesMoviesFragment extends android.support.v4.app.Fragment imp
     @Override
     public void onClick(View v) {
         if (v.getTag() != null) {
-            ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
+            if (v.getTag() instanceof Movie) {
+                MovieFragment mf = new MovieFragment();
+                Bundle b = new Bundle();
+                b.putString("movie_id", ((Movie)v.getTag()).title);
+                mf.setArguments(b);
+                getActivity().getSupportFragmentManager().beginTransaction()
+                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                        .replace(R.id.mainContainer, mf, ((Movie)v.getTag()).title)
+                        .addToBackStack(null)
+                        .commit();
+            } else {
+                ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
+            }
         }
     }
 }

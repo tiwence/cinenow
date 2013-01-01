@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
@@ -47,6 +48,8 @@ import com.tiwence.cinenow2.model.ShowTimesFeed;
 import com.tiwence.cinenow2.utils.ApiUtils;
 import com.tiwence.cinenow2.utils.SearchLocation;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -115,6 +118,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     };
 
     private Menu mMenu;
+    private boolean mIllegalState;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -187,8 +191,44 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     }*/
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        invokeFragmentManagerNoteStateNotSaved();
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private void invokeFragmentManagerNoteStateNotSaved() {
+        /**
+         * For post-Honeycomb devices
+         */
+        if (Build.VERSION.SDK_INT < 11) {
+            return;
+        }
+        try {
+            Class cls = getClass();
+            do {
+                cls = cls.getSuperclass();
+            } while (!"Activity".equals(cls.getSimpleName()));
+            Field fragmentMgrField = cls.getDeclaredField("mFragments");
+            fragmentMgrField.setAccessible(true);
+
+            Object fragmentMgr = fragmentMgrField.get(this);
+            cls = fragmentMgr.getClass();
+
+            Method noteStateNotSavedMethod = cls.getDeclaredMethod("noteStateNotSaved", new Class[] {});
+            noteStateNotSavedMethod.invoke(fragmentMgr, new Object[] {});
+            Log.d("DLOutState", "Successful call for noteStateNotSaved!!!");
+        } catch (Exception ex) {
+            Log.e("DLOutState", "Exception on worka FM.noteStateNotSaved", ex);
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        if (mIllegalState) {
+            displayMoviesFeed();
+        }
         /*if (mResult != null && mMoviesFeedFragment == null) {
             displayResult();
         }*/
@@ -355,8 +395,12 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                         mIsFirstLocation = false;
                         //Toast.makeText(FeedActivity.this, getString(R.string.location_done), Toast.LENGTH_LONG).show();
                         requestData();
-                        ((TextView)findViewById(R.id.splashTextView)).setText(R.string.loading);
-                        //this.refreshTheatersFragment();
+                        new Handler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                ((TextView)findViewById(R.id.splashTextView)).setText(R.string.loading);
+                            }
+                        });
                     }
                 }
             }
@@ -496,8 +540,10 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.mainContainer, mMoviesFeedFragment, "feeds")
                     .commit();
+            mIllegalState = false;
         } catch (IllegalStateException e) {
             mMoviesFeedFragment = null;
+            mIllegalState = true;
             e.printStackTrace();
         }
            // }
