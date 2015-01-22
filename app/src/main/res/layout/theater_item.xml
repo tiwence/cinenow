@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="UGC Ciné Cité"
+        android:id="@+id/theaterNameText"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:padding="5dip"
+        android:maxLines="1"
+        android:textStyle="bold"/>
+
+    <it.sephiroth.android.library.widget.HListView
+        android:id="@+id/hListView"
+        android:layout_below="@+id/theaterNameText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#11000000"
+        android:paddingBottom="20dip"
+        android:paddingTop="20dip" />
+
+
+
+</RelativeLayout>
