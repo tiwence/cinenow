@@ -100,4 +100,10 @@ public class ApplicationUtils {
     }
 
 
+    public static String getYear() {
+        Calendar c = Calendar.getInstance(TimeZone.getDefault());
+        Date now  = c.getTime();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy");
+        return format.format(now);
+    }
 }

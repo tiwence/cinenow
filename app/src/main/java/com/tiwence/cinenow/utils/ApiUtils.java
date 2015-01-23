@@ -100,6 +100,12 @@ public class ApiUtils {
                 for (Element theaterDiv : theatersDivs) {
                     MovieTheater movieTheater = new MovieTheater();
                     movieTheater.mName = theaterDiv.getElementsByTag("h2").get(0).text();
+                    if (theaterDiv.getElementsByTag("h2").get(0).getElementsByTag("a") != null &&
+                            theaterDiv.getElementsByTag("h2").get(0).getElementsByTag("a").size() > 0) {
+                        String[] theaterUrlSplit = theaterDiv.getElementsByClass("name").get(0).getElementsByTag("a").attr("href").split("tid=");
+                        movieTheater.mId = theaterUrlSplit[theaterUrlSplit.length - 1];
+                        Log.d("THEATER", movieTheater.mName + " : " + movieTheater.mId);
+                    }
                     movieTheater.mAddress = theaterDiv.getElementsByClass("info").get(0).text();
 
                     //Getting movies according to the theater
@@ -135,6 +141,7 @@ public class ApiUtils {
                                 if (timeRemaining > 0) {
                                     ShowTime st = new ShowTime();
                                     st.mMovieId = movie.id_g;
+                                    st.mTheaterId = movieTheater.mId;
                                     st.mShowTimeStr = showTime;
                                     st.mTimeRemaining = timeRemaining;
                                     movieTheater.mShowTimes.add(st);
@@ -166,15 +173,16 @@ public class ApiUtils {
             @Override
             protected Movie doInBackground(Void... params) {
 
-                String query = Uri.encode(movie.title).replaceAll("\\s", "+");
-                String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
+                String query = Uri.encode(movie.title.replaceAll("\\s", "+"));
+                String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr&year=" + ApplicationUtils.getYear();
                 String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
+                Log.d("SEARCH MOVIE", searchMoVieUrl);
                 try {
                     JSONObject movieJSON = new JSONObject(movieJSONString);
                     if (movieJSON.optInt("total_results") > 0) {
                         movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
                         movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
-                        Log.d("MOVIE SEARCH", movie.title + "," + movie.poster_path);
+                        //Log.d("MOVIE SEARCH", movie.title + "," + movie.poster_path);
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -245,5 +253,96 @@ public class ApiUtils {
                 }
             }
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    /**
+     *
+     * @param location
+     * @param queryName
+     * @param listener
+     */
+    public void retrieveQueryInfo(final Location location,  final String queryName, final OnRetrieveQueryCompleted listener) {
+        new AsyncTask<Void, Void, Object>() {
+
+            @Override
+            protected Object doInBackground(Void... params) {
+                Document doc = null;
+
+                String query = location.getLatitude() + "," + location.getLongitude() +
+                        "&q=" + Uri.encode(queryName).replaceAll("\\s", "+") + "&sort=1";
+                Log.d("Google movies query", URL_API_MOVIE_THEATERS + query);
+
+                try {
+                    doc = Jsoup.connect(URL_API_MOVIE_THEATERS + query).get();
+                    return createMovieOrTheater(doc);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Object result) {
+                super.onPostExecute(result);
+                if (result != null) {
+                    if (result instanceof MovieTheater) {
+                        listener.onRetrieveQueryTheaterCompleted((MovieTheater) result);
+                    } else if (result instanceof  Movie) {
+                        listener.onRetrieveQueryMovieCompleted((Movie) result);
+                    }
+                } else {
+                    listener.onRetrieveQueryError("Error");
+                }
+            }
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    /**
+     *
+     * @param doc
+     * @return
+     */
+    private Object createMovieOrTheater(Document doc) {
+
+        if (doc.getElementsByClass("movie_results") != null
+                && doc.getElementsByClass("movie_results").size() > 0) {
+            Element content = doc.getElementsByClass("movie_results").get(0);
+
+            if (content.getAllElements().get(0).getElementsByClass("movie") != null) {
+                Element movieContent = content.getElementsByClass("movie").get(0);
+                Movie movie = new Movie();
+                movie.title = movieContent.getElementsByTag("h2").get(0).text();
+                movie.infos_g = movieContent.getElementsByClass("info").get(0).text();
+                movie.overview = movieContent.getElementsByClass("syn").get(0).text();
+                if (movieContent.getElementsByClass("showtimes") != null
+                        && movieContent.getElementsByClass("showtimes").get(0).getElementsByClass("theater") != null
+                        && movieContent.getElementsByClass("showtimes").get(0).getElementsByClass("theater").size() > 0) {
+
+                    for (Element showtimeElement : movieContent.getElementsByClass("showtimes").get(0).getElementsByClass("theater")) {
+                        MovieTheater theater = new MovieTheater();
+                        theater.mName = showtimeElement.getElementsByClass("name").get(0).text();
+                        theater.mAddress = showtimeElement.getElementsByClass("address").get(0).text();
+
+                        if (showtimeElement.getElementsByClass("times") != null
+                                && showtimeElement.getElementsByClass("name").size() > 0) {
+                            theater.mShowTimes = new ArrayList<ShowTime>();
+                            for (Element timeElement : showtimeElement.getElementsByClass("name").get(0).getElementsByTag("span")) {
+                                ShowTime showTime = new ShowTime();
+                                showTime.mShowTimeStr = timeElement.text().replaceAll("\\s", "");
+                                showTime.mTimeRemaining = ApplicationUtils.getTimeRemaining(showTime.mShowTimeStr);
+                                theater.mShowTimes.add(showTime);
+                            }
+                        }
+                    }
+                }
+                return movie;
+            } else if (content.getAllElements().get(0).getElementsByClass("theater") != null) {
+
+            }
+
+        }
+
+        return null;
     }
 }

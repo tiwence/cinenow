@@ -10,6 +10,7 @@ public class ShowTime implements Serializable {
 
     public String mShowTimeStr;
     public int mTimeRemaining;
+    public String mTheaterId;
     public String mMovieId;
 
     public static Comparator<ShowTime> ShowTimeComparator = new Comparator<ShowTime>() {

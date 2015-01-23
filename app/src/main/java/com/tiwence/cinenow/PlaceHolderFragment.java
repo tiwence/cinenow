@@ -41,13 +41,10 @@ import it.sephiroth.android.library.widget.HListView;
 /**
  * A placeholder fragment containing a simple view.
  */
-public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener, LocationListener {
+public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener {
 
-    private ListView mListView;
-    private SwipeRefreshLayout mSwipeRefresh;
-
-    public LocationManager mLocationManager;
-    public Location mLocation;
+    public ListView mListView;
+    public SwipeRefreshLayout mSwipeRefresh;
 
     //ArrayList<MovieTheater> mTheaters;
     private TheaterResult mResult;
@@ -63,43 +60,34 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        mLocationManager = (LocationManager) this.getActivity().getSystemService(Context.LOCATION_SERVICE);
-        mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
         mSwipeRefresh = (SwipeRefreshLayout) rootView.findViewById(R.id.swipeRefresh);
         mSwipeRefresh.setOnRefreshListener(this);
+
         mListView = (ListView) rootView.findViewById(R.id.listView);
 
         mCachedMovies = ApplicationUtils.getMoviesInCache(getActivity());
-
-        if (mLocation != null)
-            requestData();
 
         return rootView;
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-    }
-
-    @Override
     public void onStart() {
         super.onStart();
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-        Toast.makeText(getActivity(), "Localisation en cours", Toast.LENGTH_LONG).show();
+        mSwipeRefresh.setRefreshing(true);
     }
 
     /**
      *
      */
-    private void requestData() {
-        ApiUtils.instance().retrieveMovieShowTimeTheaters(getActivity(), mLocation, new OnRetrieveTheatersCompleted() {
+    public void requestData(Location location) {
+        ApiUtils.instance().retrieveMovieShowTimeTheaters(getActivity(), location, new OnRetrieveTheatersCompleted() {
             @Override
             public void onRetrieveTheatersCompleted(TheaterResult result) {
                 mResult = result;
                 updateDataList();
                 mSwipeRefresh.setRefreshing(false);
+                ((MainActivity) getActivity()).setSupportProgressBarIndeterminateVisibility(false);
                 ApiUtils.instance().retrieveMoviesInfo(getActivity(), result.mMovies, new OnRetrieveMoviesInfoCompleted() {
                     @Override
                     public void onProgressMovieInfoCompleted(Movie movie) {
@@ -136,38 +124,10 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-        Log.d("Location", location.getLatitude() + ", " + location.getLongitude());
-        mLocation = location;
-        if (mIsFirstLocation) {
-            mIsFirstLocation = false;
-            Toast.makeText(getActivity(), getString(R.string.location_done), Toast.LENGTH_LONG).show();
-        }
-        mLocationManager.removeUpdates(this);
-        requestData();
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        Log.d("Provider status changed", provider + ", status " + status);
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        Log.d("Provider enabled", provider);
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        Log.d("Provider disabled", provider);
-    }
-
-    @Override
     public void onRefresh() {
         mSwipeRefresh.setRefreshing(true);
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-        requestData();
-        //Toast.makeText(getActivity(), "Localisation en cours", Toast.LENGTH_LONG).show();
+        ((MainActivity) getActivity()).refreshLocation();
+        requestData(((MainActivity) getActivity()).getLocation());
     }
 
     /**
@@ -278,7 +238,9 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
                     !mResult.mMovies.get(mShowTimes.get(position).mMovieId).poster_path.equals("")) {
                 String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mResult.mMovies.get(mShowTimes.get(position).mMovieId).poster_path;
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
-            } else if (mCachedMovies != null && mCachedMovies.containsKey(mShowTimes.get(position).mMovieId)) {
+            } else if (mCachedMovies != null && mCachedMovies.containsKey(mShowTimes.get(position).mMovieId)
+                    && mCachedMovies.get(mShowTimes.get(position).mMovieId).poster_path != null
+                    && !mCachedMovies.get(mShowTimes.get(position).mMovieId).poster_path.equals("")) {
                 String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(mShowTimes.get(position).mMovieId).poster_path;
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else {
@@ -287,7 +249,7 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
                     @Override
                     public void onRetrieveMovieInfoCompleted(Movie movie) {
                         String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + movie.poster_path;
-                        if (imgViewRef != null)
+                        if (imgViewRef != null && imgViewRef.get() != null)
                             Picasso.with(getActivity()).load(posterPath)
                                     .placeholder(R.drawable.poster_placeholder).into(imgViewRef.get());
                     }

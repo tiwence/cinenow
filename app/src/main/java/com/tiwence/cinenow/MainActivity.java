@@ -1,28 +1,47 @@
 package com.tiwence.cinenow;
 
 import android.content.Context;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
+import android.widget.Toast;
+
+import com.tiwence.cinenow.model.Movie;
+import com.tiwence.cinenow.model.MovieTheater;
+import com.tiwence.cinenow.utils.ApiUtils;
+import com.tiwence.cinenow.utils.OnRetrieveQueryCompleted;
 
 import java.util.Locale;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity implements OnRetrieveQueryCompleted, LocationListener {
 
     private PlaceHolderFragment mCurrentFragment;
     private EditText mEditSearch;
 
+    private LocationManager mLocationManager;
+    private Location mLocation;
+    private boolean mIsFirstLocation = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
         mCurrentFragment = new PlaceHolderFragment();
         if (savedInstanceState == null) {
@@ -30,6 +49,19 @@ public class MainActivity extends ActionBarActivity {
                     .add(R.id.container, mCurrentFragment)
                     .commit();
         }
+        setSupportProgressBarIndeterminateVisibility(true);
+        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+        refreshLocation();
+    }
+
+    public LocationManager getLocationManager() {
+        return this.mLocationManager;
+    }
+
+    public Location getLocation() {
+        return this.mLocation;
     }
 
     @Override
@@ -37,14 +69,13 @@ public class MainActivity extends ActionBarActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
-        mEditSearch = (AutoCompleteTextView) menu.findItem(R.id.action_search).getActionView();
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+        mEditSearch = (AutoCompleteTextView) MenuItemCompat.getActionView(searchItem);
         mEditSearch.addTextChangedListener(textWatcher);
+
         mEditSearch.setHint(R.string.search_placeholder);
 
-        MenuItem menuSearch = menu.findItem(R.id.action_search);
-
-        menuSearch.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
-
+        MenuItemCompat.setOnActionExpandListener(searchItem, new MenuItemCompat.OnActionExpandListener() {
             @Override
             public boolean onMenuItemActionExpand(MenuItem item) {
                 mEditSearch.requestFocus();
@@ -60,6 +91,7 @@ public class MainActivity extends ActionBarActivity {
                 return true;
             }
         });
+
         return true;
     }
 
@@ -89,8 +121,10 @@ public class MainActivity extends ActionBarActivity {
                     .toLowerCase(Locale.getDefault()).trim();
 
             if (queryName.length() > 3) {
-                if (mCurrentFragment.mLocation != null) {
-
+                if (mLocation != null) {
+                    ApiUtils.instance().retrieveQueryInfo(mLocation, queryName, MainActivity.this);
+                } else {
+                    //TODO ?
                 }
             }
         }
@@ -107,4 +141,49 @@ public class MainActivity extends ActionBarActivity {
 
     };
 
+    @Override
+    public void onRetrieveQueryMovieCompleted(Movie movie) {
+        Log.d("QUERY OK", movie.title);
+    }
+
+    @Override
+    public void onRetrieveQueryTheaterCompleted(MovieTheater theater) {
+
+    }
+
+    @Override
+    public void onRetrieveQueryError(String errorMessage) {
+        Log.d("Query", errorMessage);
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Log.d("Location", location.getLatitude() + ", " + location.getLongitude());
+        mLocation = location;
+        if (mIsFirstLocation) {
+            mIsFirstLocation = false;
+            Toast.makeText(this, getString(R.string.location_done), Toast.LENGTH_LONG).show();
+            mCurrentFragment.requestData(mLocation);
+        }
+        mLocationManager.removeUpdates(this);
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
+
+    public void refreshLocation() {
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+    }
 }

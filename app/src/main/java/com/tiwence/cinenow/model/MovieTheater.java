@@ -9,6 +9,7 @@ import java.util.HashMap;
  */
 public class MovieTheater implements Serializable {
 
+    public String mId;
     public String mName;
     public String mAddress;
     public HashMap<String, ArrayList<String>> mShowtimesMap;
