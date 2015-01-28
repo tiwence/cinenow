@@ -4,10 +4,7 @@ package com.tiwence.cinenow;
  * Created by temarill on 19/01/2015.
  */
 
-import android.content.Context;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -22,19 +19,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
+import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTime;
-import com.tiwence.cinenow.model.TheaterResult;
+import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
-import com.tiwence.cinenow.utils.OnRetrieveMovieInfoCompleted;
-import com.tiwence.cinenow.utils.OnRetrieveMoviesInfoCompleted;
-import com.tiwence.cinenow.utils.OnRetrieveTheatersCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import it.sephiroth.android.library.widget.HListView;
 
@@ -47,8 +44,8 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
     public SwipeRefreshLayout mSwipeRefresh;
 
     //ArrayList<MovieTheater> mTheaters;
-    private TheaterResult mResult;
-    private HashMap<String, Movie> mCachedMovies;
+    private ShowTimesFeed mResult;
+    private LinkedHashMap<String, Movie> mCachedMovies;
     private TheaterAdapter mTheaterAdapter;
     private boolean mIsFirstLocation = true;
 
@@ -74,20 +71,19 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
     @Override
     public void onStart() {
         super.onStart();
-        mSwipeRefresh.setRefreshing(true);
     }
 
     /**
      *
      */
     public void requestData(Location location) {
-        ApiUtils.instance().retrieveMovieShowTimeTheaters(getActivity(), location, new OnRetrieveTheatersCompleted() {
+        ApiUtils.instance().retrieveMovieShowTimeTheaters(getActivity(), location, new OnRetrieveShowTimesCompleted() {
             @Override
-            public void onRetrieveTheatersCompleted(TheaterResult result) {
+            public void onRetrieveShowTimesCompleted(ShowTimesFeed result) {
                 mResult = result;
                 updateDataList();
                 mSwipeRefresh.setRefreshing(false);
-                ((MainActivity) getActivity()).setSupportProgressBarIndeterminateVisibility(false);
+                getActivity().setProgressBarIndeterminateVisibility(false);
                 ApiUtils.instance().retrieveMoviesInfo(getActivity(), result.mMovies, new OnRetrieveMoviesInfoCompleted() {
                     @Override
                     public void onProgressMovieInfoCompleted(Movie movie) {
@@ -96,7 +92,7 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
                     }
 
                     @Override
-                    public void onRetrieveMoviesInfoCompleted(HashMap<String, Movie> movies) {
+                    public void onRetrieveMoviesInfoCompleted(LinkedHashMap<String, Movie> movies) {
                         Log.d("MOVIE SEARCH", "All movies get");
                         mResult.mMovies = movies;
                         ApplicationUtils.saveMoviesInCache(getActivity(), mResult.mMovies);
@@ -111,7 +107,7 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
             }
 
             @Override
-            public void onRetrieveTheatersError(String errorMessage) {
+            public void onRetrieveShowTimesError(String errorMessage) {
                 Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_LONG).show();
                 mSwipeRefresh.setRefreshing(false);
             }
@@ -119,7 +115,7 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
     }
 
     private void updateDataList() {
-        mTheaterAdapter = new TheaterAdapter(mResult.mMovieTheaters);
+        mTheaterAdapter = new TheaterAdapter(mResult.mTheaters);
         mListView.setAdapter(mTheaterAdapter);
     }
 
@@ -135,11 +131,11 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
      */
     public class TheaterAdapter extends BaseAdapter {
 
-        ArrayList<MovieTheater> mTheaters;
+        LinkedHashMap<String, MovieTheater> mTheaters;
         LayoutInflater mInflater;
         ShowtimeAdapter mShowTimeAdapter;
 
-        public TheaterAdapter(ArrayList<MovieTheater> theaters) {
+        public TheaterAdapter(LinkedHashMap<String, MovieTheater> theaters) {
             this.mTheaters = theaters;
             this.mInflater = LayoutInflater.from(getActivity());
         }
@@ -174,8 +170,9 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
                 convertView.setTag(vh);
             }
             vh = (ViewHolder) convertView.getTag();
-            vh.mTheaterName.setText(mTheaters.get(position).mName);
-            vh.mHListView.setAdapter(new ShowtimeAdapter(mTheaters.get(position).mShowTimes));
+            MovieTheater mt = (new ArrayList<MovieTheater>(mTheaters.values())).get(position);
+            vh.mTheaterName.setText(mt.mName);
+            vh.mHListView.setAdapter(new ShowtimeAdapter(mResult.getNextShowTimesByTheaterId(mt.mId)));
 
             return convertView;
         }
@@ -231,9 +228,10 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
             }
 
             vh = (ViewHolder) convertView.getTag();
-            vh.mTimeRemaining.setText("" + mShowTimes.get(position).mTimeRemaining);
+            vh.mTimeRemaining.setText(ApplicationUtils.getTimeString(mShowTimes.get(position).mTimeRemaining));
             vh.mMovieTitle.setText(mResult.mMovies.get(mShowTimes.get(position).mMovieId).title);
 
+            //Get poster
             if (mResult.mMovies.get(mShowTimes.get(position).mMovieId).poster_path != null &&
                     !mResult.mMovies.get(mShowTimes.get(position).mMovieId).poster_path.equals("")) {
                 String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mResult.mMovies.get(mShowTimes.get(position).mMovieId).poster_path;

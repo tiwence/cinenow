@@ -26,4 +26,7 @@ dependencies {
     compile 'org.jsoup:jsoup:1.7.+'
     compile 'com.squareup.picasso:picasso:2.4.+'
     compile 'it.sephiroth.android.library.horizontallistview:hlistview:1.2.2'
+    compile 'com.github.kikoso:SwipeableCards:1.0-RELEASE@aar'
+    compile 'com.lorentzos.swipecards:library:+@aar'
+    compile 'com.sothree.slidinguppanel:library:2.0.4'
 }

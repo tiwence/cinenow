@@ -20,6 +20,7 @@ public class Movie implements Serializable {
     public String release_date;
     public float vote_average;
     public String duration_time;
+    public String kind;
 
     public boolean isOnDataset;
 

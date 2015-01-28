@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center_horizontal"
+    android:background="@android:color/white"
+    android:id="@+id/relativeLayout">
+
+    <View
+        android:id="@+id/item_swipe_left_indicator"
+        android:alpha="0"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_margin="10dp"
+        android:background="#A5F" />
+
+    <View
+        android:id="@+id/item_swipe_right_indicator"
+        android:alpha="0"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_margin="10dp"
+        android:background="#5AF" />
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/showtimePoster"
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/poster_placeholder"
+        android:scaleType="centerCrop"
+        android:adjustViewBounds="true" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_alignParentBottom="true"
+        android:padding="10dip"
+        android:id="@+id/dragingLayout"
+        android:background="@color/feed_infos_background">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Titre du film"
+            android:layout_alignParentLeft="true"
+            android:id="@+id/showtimeTitleTextView"
+            android:maxLines="2"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            android:layout_toLeftOf="@+id/buttonMoreShowTimes"
+            android:layout_marginBottom="5dip" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Dans 5 min"
+            android:id="@+id/showtimeTimeRemainingTextView"
+            android:textColor="@android:color/white"
+            android:lines="1"
+            android:layout_below="@+id/showtimeTitleTextView" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="UGC Ciné Cité Les Halles"
+            android:id="@+id/showtimeTheaterTextView"
+            android:textColor="@android:color/white"
+            android:layout_marginLeft="5dp"
+            android:layout_toRightOf="@+id/showtimeTimeRemainingTextView"
+            android:layout_below="@+id/showtimeTitleTextView"
+            android:lines="1"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_menu_add"
+            android:text="+"
+            android:id="@+id/buttonMoreShowTimes"
+            android:layout_alignParentRight="true"/>
+    </RelativeLayout>
+
+
+</RelativeLayout>

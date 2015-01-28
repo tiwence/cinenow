@@ -15,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.TimeZone;
 
 /**
@@ -25,11 +26,10 @@ public class ApplicationUtils {
     private static final String MOVIES_FILE_NAME = "movies";
 
     /**
-     *
      * @param context
      * @param movies
      */
-    public static void saveMoviesInCache(Context context, HashMap<String, Movie> movies) {
+    public static void saveMoviesInCache(Context context, LinkedHashMap<String, Movie> movies) {
         FileOutputStream fos = null;
         ObjectOutputStream oos = null;
         try {
@@ -41,7 +41,7 @@ public class ApplicationUtils {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-             try {
+            try {
                 if (oos != null) oos.close();
                 if (fos != null) fos.close();
             } catch (IOException e) {
@@ -51,18 +51,17 @@ public class ApplicationUtils {
     }
 
     /**
-     *
      * @param context
      * @return
      */
-    public static HashMap<String, Movie> getMoviesInCache(Context context) {
+    public static LinkedHashMap<String, Movie> getMoviesInCache(Context context) {
         FileInputStream fis = null;
         ObjectInputStream ois = null;
-        HashMap<String, Movie> movies = null;
+        LinkedHashMap<String, Movie> movies = null;
         try {
             fis = context.openFileInput(MOVIES_FILE_NAME);
             ois = new ObjectInputStream(fis);
-            movies = (HashMap<String, Movie>) ois.readObject();
+            movies = (LinkedHashMap<String, Movie>) ois.readObject();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -75,11 +74,10 @@ public class ApplicationUtils {
     }
 
     /**
-     *
      * @param showTime
      * @return
      */
-    public  static int getTimeRemaining(String showTime) {
+    public static int getTimeRemaining(String showTime) {
         Calendar c = Calendar.getInstance(TimeZone.getDefault());
         Date now = c.getTime();
 
@@ -96,14 +94,28 @@ public class ApplicationUtils {
         }
         long timeRemain = showTimeDate.getTime() - now.getTime();
 
-        return (int)((timeRemain / 1000) / 60);
+        return (int) ((timeRemain / 1000) / 60);
     }
 
 
     public static String getYear() {
         Calendar c = Calendar.getInstance(TimeZone.getDefault());
-        Date now  = c.getTime();
+        Date now = c.getTime();
         SimpleDateFormat format = new SimpleDateFormat("yyyy");
         return format.format(now);
+    }
+
+    public static String getTimeString(int timeRemaining) {
+        String time = "Dans ";
+
+        int hour = timeRemaining / 60;
+        int minute = timeRemaining;
+        if (hour > 0) {
+            time += hour + "h";
+            minute = minute - 60*hour;
+        }
+        time += minute + "min";
+
+        return time;
     }
 }

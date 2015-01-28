@@ -1,12 +1,12 @@
 package com.tiwence.cinenow;
 
 import android.content.Context;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.view.MenuItemCompat;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -22,14 +22,16 @@ import android.widget.Toast;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.utils.ApiUtils;
-import com.tiwence.cinenow.utils.OnRetrieveQueryCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 
 import java.util.Locale;
 
 
 public class MainActivity extends ActionBarActivity implements OnRetrieveQueryCompleted, LocationListener {
 
-    private PlaceHolderFragment mCurrentFragment;
+    private static final String TAG = "MainActivity";
+    //private PlaceHolderFragment mCurrentFragment;
+    private MoviesFeedFragment mMoviesFeedFragment;
     private EditText mEditSearch;
 
     private LocationManager mLocationManager;
@@ -43,13 +45,16 @@ public class MainActivity extends ActionBarActivity implements OnRetrieveQueryCo
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        mCurrentFragment = new PlaceHolderFragment();
+        //mCurrentFragment = new PlaceHolderFragment();
+
+        mMoviesFeedFragment = new MoviesFeedFragment();
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, mCurrentFragment)
+                    .add(R.id.container, mMoviesFeedFragment)
                     .commit();
         }
-        setSupportProgressBarIndeterminateVisibility(true);
+        setProgressBarIndeterminateVisibility(true);
+
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
@@ -105,6 +110,11 @@ public class MainActivity extends ActionBarActivity implements OnRetrieveQueryCo
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        } else if (id == R.id.action_refresh) {
+            mMoviesFeedFragment = new MoviesFeedFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.container, mMoviesFeedFragment)
+                    .commit();
         }
 
         return super.onOptionsItemSelected(item);
@@ -158,12 +168,14 @@ public class MainActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     @Override
     public void onLocationChanged(Location location) {
-        Log.d("Location", location.getLatitude() + ", " + location.getLongitude());
-        mLocation = location;
+        if (location != null) {
+            Log.d("Location", location.getLatitude() + ", " + location.getLongitude());
+            mLocation = location;
+        }
         if (mIsFirstLocation) {
             mIsFirstLocation = false;
             Toast.makeText(this, getString(R.string.location_done), Toast.LENGTH_LONG).show();
-            mCurrentFragment.requestData(mLocation);
+            mMoviesFeedFragment.requestData(mLocation);
         }
         mLocationManager.removeUpdates(this);
     }
@@ -184,6 +196,25 @@ public class MainActivity extends ActionBarActivity implements OnRetrieveQueryCo
     }
 
     public void refreshLocation() {
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+        mLocationManager.requestLocationUpdates(getProviderName(), 0, 0, this);
     }
+
+    /**
+     * Get provider name.
+     * @return Name of best suiting provider.
+     * */
+    private  String getProviderName() {
+        Criteria criteria = new Criteria();
+        criteria.setPowerRequirement(Criteria.POWER_LOW); // Chose your desired power consumption level.
+        criteria.setAccuracy(Criteria.ACCURACY_COARSE); // Choose your accuracy requirement.
+        criteria.setSpeedRequired(true); // Chose if speed for first location fix is required.
+        criteria.setAltitudeRequired(false); // Choose if you use altitude.
+        criteria.setBearingRequired(false); // Choose if you use bearing.
+        criteria.setCostAllowed(false); // Choose if this provider can waste money :-)
+
+        // Provide your criteria and flag enabledOnly that tells
+        // LocationManager only to return active providers.
+        return mLocationManager.getBestProvider(criteria, true);
+    }
+
 }

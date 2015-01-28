@@ -1,4 +1,4 @@
-package com.tiwence.cinenow.utils;
+package com.tiwence.cinenow.listener;
 
 import com.tiwence.cinenow.model.Movie;
 

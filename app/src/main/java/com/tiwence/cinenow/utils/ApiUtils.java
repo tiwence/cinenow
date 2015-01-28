@@ -6,10 +6,15 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.tiwence.cinenow.R;
+import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTime;
-import com.tiwence.cinenow.model.TheaterResult;
+import com.tiwence.cinenow.model.ShowTimesFeed;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,8 +26,8 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -49,10 +54,10 @@ public class ApiUtils {
      * @param location
      * @param listener
      */
-    public void retrieveMovieShowTimeTheaters(final Context context, Location location, final OnRetrieveTheatersCompleted listener) {
-        new AsyncTask<Location, Void, TheaterResult>() {
+    public void retrieveMovieShowTimeTheaters(final Context context, Location location, final OnRetrieveShowTimesCompleted listener) {
+        new AsyncTask<Location, Void, ShowTimesFeed>() {
             @Override
-            protected TheaterResult doInBackground(Location... params) {
+            protected ShowTimesFeed doInBackground(Location... params) {
 
                 Document doc = null;
                 try {
@@ -69,12 +74,12 @@ public class ApiUtils {
             }
 
             @Override
-            protected void onPostExecute(TheaterResult result) {
+            protected void onPostExecute(ShowTimesFeed result) {
                 super.onPostExecute(result);
                 if (result != null)
-                    listener.onRetrieveTheatersCompleted(result);
+                    listener.onRetrieveShowTimesCompleted(result);
                 else
-                    listener.onRetrieveTheatersError("Impossible de récupérer les données");
+                    listener.onRetrieveShowTimesError("Impossible de récupérer les données");
             }
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, location);
     }
@@ -84,20 +89,24 @@ public class ApiUtils {
      * @param doc
      * @return
      */
-    private TheaterResult createMovieTheatersList(Context context, Document doc) {
-        ArrayList<MovieTheater> theaters = null;
+    private ShowTimesFeed createMovieTheatersList(Context context, Document doc) {
+        LinkedHashMap<String, MovieTheater> theaters = null;
+        LinkedHashMap<String, Movie> moviesCached = ApplicationUtils.getMoviesInCache(context);
+        LinkedHashMap<String, Movie> movies = new LinkedHashMap<String, Movie>();
+        ArrayList<String> movieKinds = new ArrayList<>();
+        movieKinds.add(context.getString(R.string.all));
+        ArrayList<ShowTime> showTimes = null;
+        ArrayList<ShowTime> nextShowtimes = null;
 
-        HashMap<String, Movie> moviesCached = ApplicationUtils.getMoviesInCache(context);
-
-        HashMap<String, Movie> movies = new HashMap<>();
         if (doc != null) {
-            theaters = new ArrayList<MovieTheater>();
+            theaters = new LinkedHashMap<String, MovieTheater>();
             if (doc.getElementsByClass("movie_results").size() > 0) {
                 Element content = doc.getElementsByClass("movie_results").get(0);
                 Elements theatersDivs = content.getElementsByClass("theater");
 
                 //Getting movie theaters
                 for (Element theaterDiv : theatersDivs) {
+                    int showTimeNb = 0;
                     MovieTheater movieTheater = new MovieTheater();
                     movieTheater.mName = theaterDiv.getElementsByTag("h2").get(0).text();
                     if (theaterDiv.getElementsByTag("h2").get(0).getElementsByTag("a") != null &&
@@ -110,9 +119,6 @@ public class ApiUtils {
 
                     //Getting movies according to the theater
                     Elements movieDivs = theaterDiv.getElementsByClass("movie");
-                    movieTheater.mShowtimesMap = new HashMap<String, ArrayList<String>>(movieDivs.size());
-                    movieTheater.mShowtimesRemainingMap = new HashMap<String, ArrayList<Integer>>();
-                    movieTheater.mShowTimes = new ArrayList<ShowTime>();
 
                     for (Element movieDiv : movieDivs) {
                         Movie movie = null;
@@ -126,45 +132,55 @@ public class ApiUtils {
                             movie = new Movie();
                             movie.id_g = idG;
                             movie.title = movieDiv.getElementsByClass("name").get(0).getElementsByTag("a").get(0).text();
-                            movie.duration_time = movieDiv.getElementsByClass("info").get(0).text().split("-")[0];
+                            movie.duration_time = movieDiv.getElementsByClass("info").get(0).text().split(" - ")[0];
+                            movie.kind = movieDiv.getElementsByClass("info").get(0).text().split(" - ")[2].trim();
                         }
 
+                        if (movie.kind != null && !movieKinds.contains(movie.kind)) movieKinds.add(movie.kind);
+
+                        //Loop on showtimes feed by Google
                         Element timeDiv = movieDiv.getElementsByClass("times").get(0);
-                        ArrayList<String> showTimes = new ArrayList<String>();
-                        ArrayList<Integer> showTimesRemaining = new ArrayList<Integer>();
+
                         for (Element timeSpan : timeDiv.getElementsByTag("span")) {
-                            //Comparison between now and the showtime
+                            //Comparison between the current time and the showtime
                             String showTime = timeSpan.text().replaceAll("\\s", "");
                             if (showTime.length() > 0) {
+                                if (showTimes == null && nextShowtimes == null) {
+                                    showTimes = new ArrayList<ShowTime>();
+                                    nextShowtimes = new ArrayList<>();
+                                }
                                 int timeRemaining = ApplicationUtils.getTimeRemaining(showTime);
-                                showTimes.add(timeSpan.text());
-                                if (timeRemaining > 0) {
-                                    ShowTime st = new ShowTime();
-                                    st.mMovieId = movie.id_g;
-                                    st.mTheaterId = movieTheater.mId;
-                                    st.mShowTimeStr = showTime;
-                                    st.mTimeRemaining = timeRemaining;
-                                    movieTheater.mShowTimes.add(st);
-                                    showTimesRemaining.add(timeRemaining);
+                                //showTimes.add(timeSpan.text());
+                                ShowTime st = new ShowTime();
+                                st.mMovieId = movie.id_g;
+                                st.mTheaterId = movieTheater.mId;
+                                st.mShowTimeStr = showTime;
+                                st.mTimeRemaining = timeRemaining;
+                                showTimes.add(st);
+                                if (timeRemaining > 0 && timeRemaining < 95) {
+                                    showTimeNb++;
+                                    nextShowtimes.add(st);
                                 }
                             }
                         }
                         if (!movies.containsKey(movie.id_g)) {
                             movies.put(movie.id_g, movie);
                         }
-                        movieTheater.mShowtimesRemainingMap.put(movie.id_g, showTimesRemaining);
-                        movieTheater.mShowtimesMap.put(movie.id_g, showTimes);
-                        Collections.sort(movieTheater.mShowTimes, ShowTime.ShowTimeComparator);
+                        Collections.sort(showTimes, ShowTime.ShowTimeComparator);
+                        Collections.sort(nextShowtimes, ShowTime.ShowTimeComparator);
                     }
-                    //movieTheater.mShowTimes;
-                    if (movieTheater.mShowTimes != null && movieTheater.mShowTimes.size() > 0)
-                        theaters.add(movieTheater);
+                    if (showTimeNb > 0)
+                        theaters.put(movieTheater.mId, movieTheater);
                 }
             }
         }
-        TheaterResult result = new TheaterResult();
-        result.mMovieTheaters = theaters;
+        ShowTimesFeed result = new ShowTimesFeed();
+        result.mTheaters = theaters;
         result.mMovies = movies;
+        result.mNextShowTimes = nextShowtimes;
+        result.mShowTimes = showTimes;
+        result.mMovieKinds = movieKinds;
+
         return result;
     }
 
@@ -207,11 +223,11 @@ public class ApiUtils {
      * @param movies
      * @param listener
      */
-    public void retrieveMoviesInfo(Context context, final HashMap<String, Movie> movies, final OnRetrieveMoviesInfoCompleted listener) {
-        final HashMap<String, Movie> moviesCached = ApplicationUtils.getMoviesInCache(context);
-        new AsyncTask<Void, Movie, HashMap<String, Movie>>() {
+    public void retrieveMoviesInfo(Context context, final LinkedHashMap<String, Movie> movies, final OnRetrieveMoviesInfoCompleted listener) {
+        final LinkedHashMap<String, Movie> moviesCached = ApplicationUtils.getMoviesInCache(context);
+        new AsyncTask<Void, Movie, LinkedHashMap<String, Movie>>() {
             @Override
-            protected HashMap<String, Movie> doInBackground(Void... params) {
+            protected LinkedHashMap<String, Movie> doInBackground(Void... params) {
 
                 Iterator it = movies.entrySet().iterator();
                 while (it.hasNext()) {
@@ -244,7 +260,7 @@ public class ApiUtils {
             }
 
             @Override
-            protected void onPostExecute(HashMap<String, Movie> movies) {
+            protected void onPostExecute(LinkedHashMap<String, Movie> movies) {
                 super.onPostExecute(movies);
                 if (movies != null) {
                     listener.onRetrieveMoviesInfoCompleted(movies);
