@@ -53,12 +53,6 @@ public class Movie implements Serializable {
         }
     };
 
-    public static Comparator<Movie> MovieNextShowTimeComparator = new Comparator<Movie>() {
-        @Override
-        public int compare(Movie s1, Movie s2) {
-            return s1.mFirstTimeRemaining - s2.mFirstTimeRemaining;
-        }
-    };
 
     /**
      * Used when query

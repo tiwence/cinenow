@@ -2,6 +2,7 @@ package com.tiwence.cinenow.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 
 /**
@@ -22,5 +23,14 @@ public class MovieTheater implements Serializable {
     public double mLongitude = -10000;
 
     //public ArrayList<Movie> mMovies;
+
+    public static Comparator<MovieTheater> MovieTheatersDistanceComparator = new Comparator<MovieTheater>() {
+        @Override
+        public int compare(MovieTheater lhs, MovieTheater rhs) {
+            if (lhs.mDistance < rhs.mDistance) return  -1;
+            else if (lhs.mDistance > rhs.mDistance) return 1;
+            return 0;
+        }
+    };
 
 }

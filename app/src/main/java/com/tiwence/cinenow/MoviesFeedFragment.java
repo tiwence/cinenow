@@ -4,16 +4,21 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.v7.app.ActionBar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,26 +39,35 @@ import org.w3c.dom.Text;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
  * Created by temarill on 26/01/2015.
  */
-public class MoviesFeedFragment extends android.support.v4.app.Fragment {
+public class MoviesFeedFragment extends android.support.v4.app.Fragment implements SwipeFlingAdapterView.onFlingListener {
 
-    private LinkedHashMap<String, Movie> mCachedMovies;
-    private ShowTimesFeed mResult;
     private View mRootView;
     SwipeFlingAdapterView mFeedContainer;
-    ShowTimesAdapter mFeedAdapter;
 
+    private int i;
+    private LinkedHashMap<String, Movie> mCachedMovies;
+    private ShowTimesFeed mResult;
+    private ArrayList<Movie> mNextMovies;
+    private MoviesAdapter mFeedAdapter;
+    private int mKindIndex;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_showtimes_feed, container, false);
         mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
+        mResult = (ShowTimesFeed) getArguments().getSerializable("result");
+
+        if (mResult != null && mResult.mNextMovies != null && mResult.mNextMovies.size() > 0) {
+            updateDataList(mResult);
+        }
 
         return mRootView;
     }
@@ -61,161 +75,200 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        //if (((MainActivity)getActivity()).getLocation() != null) {
-          //  this.requestData(((MainActivity)getActivity()).getLocation());
-        //}
     }
 
+    public void updateDataList(ShowTimesFeed result) {
+        //Adding feed view
+        mResult = result;
+        if (this.mResult.mNextMovies != null && this.mResult.mNextMovies.size() > 0) {
+            //ActionBar spinner adapter
+            mNextMovies = new ArrayList<>(this.mResult.mNextMovies);
+            Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
+            mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item,
+                    mNextMovies);
+            mFeedContainer = (SwipeFlingAdapterView) mRootView.findViewById(R.id.frame);
 
-    private void updateDataList() {
-        //add the view via xml or programmatically
+            //set the listener and the adapter
+            //mFeedContainer.init(getActivity(), mFeedAdapter);
+            mFeedContainer.setAdapter(mFeedAdapter);
+            mFeedContainer.setFlingListener(this);
 
-        //choose your favorite adapter
-        //arrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.item, R.id.helloText, al);
+            // Optionally add an OnItemClickListener
+            mFeedContainer.setOnItemClickListener(new SwipeFlingAdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClicked(int itemPosition, Object dataObject) {
+                    Toast.makeText(getActivity(), "Clicked ! " + itemPosition, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
 
-        mFeedContainer = (SwipeFlingAdapterView) mRootView.findViewById(R.id.frame);
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d("MFF", "ON RESUME");
+        if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
+            mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
+            filterFragment(mKindIndex);
+        }
+    }
 
-        mFeedAdapter = new ShowTimesAdapter(getActivity(), R.layout.feed_item, mResult.mNextShowTimes);
+    private void resetContainer() {
+        mNextMovies = new ArrayList<Movie>();
+        mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
         mFeedContainer.setAdapter(mFeedAdapter);
+        mFeedContainer.setFlingListener(this);
+        mFeedAdapter.notifyDataSetChanged();
+    }
 
-        //set the listener and the adapter
-        mFeedContainer.setFlingListener(new SwipeFlingAdapterView.onFlingListener() {
+    public void filterFragment(int kindIndex) {
+        resetContainer();
+        mKindIndex = kindIndex;
+        mNextMovies = new ArrayList<>(mResult.mNextMovies);
+        ArrayList<Movie> filteredMovies = new ArrayList<>();
+        if (mKindIndex > 0) {
+            for (Movie m : mNextMovies) {
+                if (m.kind != null && m.kind.equals(mResult.mMovieKinds.get(mKindIndex))) {
+                    filteredMovies.add(m);
+                }
+            }
+            mNextMovies = filteredMovies;
+        }
+        Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
+
+        new Handler().postDelayed(new Runnable() {
             @Override
-            public void removeFirstObjectInAdapter() {
-                // this is the simplest way to delete an object from the Adapter (/AdapterView)
-                Log.d("LIST", "removed object!");
-                mResult.mShowTimes.remove(0);
+            public void run() {
+                //Reload
+                mFeedAdapter = new MoviesFeedFragment.MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
+                //mFeedContainer.init(getActivity(), mFeedAdapter);
+                mFeedContainer.setAdapter(mFeedAdapter);
+                mFeedContainer.setFlingListener(MoviesFeedFragment.this);
                 mFeedAdapter.notifyDataSetChanged();
             }
-
-            @Override
-            public void onLeftCardExit(Object dataObject) {
-                //Do something on the left!
-                //You also have access to the original object.
-                //If you want to use it just cast it (String) dataObject
-                Toast.makeText(getActivity(), "Left!", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onRightCardExit(Object dataObject) {
-                Toast.makeText(getActivity(), "Right!", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onAdapterAboutToEmpty(int itemsInAdapter) {
-
-            }
-
-            @Override
-            public void onScroll(float scrollProgressPercent) {
-                View view = mFeedContainer.getSelectedView();
-                view.findViewById(R.id.item_swipe_right_indicator).setAlpha(scrollProgressPercent < 0 ? -scrollProgressPercent : 0);
-                view.findViewById(R.id.item_swipe_left_indicator).setAlpha(scrollProgressPercent > 0 ? scrollProgressPercent : 0);
-            }
-        });
-
-        // Optionally add an OnItemClickListener
-        mFeedContainer.setOnItemClickListener(new SwipeFlingAdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClicked(int itemPosition, Object dataObject) {
-                Toast.makeText(getActivity(), "Clicked ! " + itemPosition, Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        Toast.makeText(getActivity(), "DISPLAYING CARDS", Toast.LENGTH_LONG).show();
-
-        mFeedContainer.invalidate();
-    }
-
-    /**
-     *
-     * @param location
-     */
-    public void requestData(Location location) {
-        ApiUtils.instance().retrieveMovieShowTimeTheaters(getActivity(), location, new OnRetrieveShowTimesCompleted() {
-            @Override
-            public void onRetrieveShowTimesCompleted(ShowTimesFeed result) {
-                mResult = result;
-                updateDataList();
-                getActivity().setProgressBarIndeterminateVisibility(false);
-                ApiUtils.instance().retrieveMoviesInfo(getActivity(), result.mMovies, new OnRetrieveMoviesInfoCompleted() {
-                    @Override
-                    public void onProgressMovieInfoCompleted(Movie movie) {
-                        //mResult.mMovies.put(movie.id_g, movie);
-                        //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
-                    }
-
-                    @Override
-                    public void onRetrieveMoviesInfoCompleted(LinkedHashMap<String, Movie> movies) {
-                        Log.d("MOVIE SEARCH", "All movies get");
-                        mResult.mMovies = movies;
-                        ApplicationUtils.saveDataInCache(getActivity(), mResult.mMovies, ApplicationUtils.MOVIES_FILE_NAME);
-                        //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
-                    }
-
-                    @Override
-                    public void onRetrieveMoviesError(String message) {
-                        Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onRetrieveShowTimesError(String errorMessage) {
-                Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_LONG).show();
-            }
-        });
+        }, 200);
     }
 
 
-    public class ShowTimesAdapter extends ArrayAdapter<ShowTime> {
+    @Override
+    public void removeFirstObjectInAdapter() {
+        // this is the simplest way to delete an object from the Adapter (/AdapterView)
+        mNextMovies.remove(0);
+        mFeedAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onLeftCardExit(Object dataObject) {
+
+    }
+
+    @Override
+    public void onRightCardExit(Object dataObject) {
+
+
+    }
+
+    @Override
+    public void onAdapterAboutToEmpty(int itemsInAdapter) {
+        // Ask for more data here
+        mFeedAdapter.notifyDataSetChanged();
+        //Log.d("LIST", "notified");
+        i++;
+    }
+
+    @Override
+    public void onScroll(float scrollProgressPercent) {
+        View view = mFeedContainer.getSelectedView();
+        if (view != null && view.findViewById(R.id.item_swipe_right_indicator) != null)
+            view.findViewById(R.id.item_swipe_right_indicator).setAlpha(scrollProgressPercent < 0 ? -scrollProgressPercent : 0);
+        if (view != null && view.findViewById(R.id.item_swipe_left_indicator) != null)
+            view.findViewById(R.id.item_swipe_left_indicator).setAlpha(scrollProgressPercent > 0 ? scrollProgressPercent : 0);
+    }
+
+
+    public class MoviesAdapter extends ArrayAdapter<Movie> {
 
         private Context mContext;
 
-        public ShowTimesAdapter(Context context, int resource, ArrayList<ShowTime> showTimes) {
-            super(context, resource, showTimes);
-            mContext = context;
+        public MoviesAdapter(Context context, int resource, List<Movie> objects) {
+            super(context, resource, objects);
+            this.mContext = context;
         }
-
-
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             ViewHolder vh = null;
             LayoutInflater mInflater = (LayoutInflater) mContext
                     .getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
-            if (convertView  == null) {
-                convertView  = mInflater.inflate(R.layout.feed_item, parent, false);
+            if (convertView == null) {
+                convertView = mInflater.inflate(R.layout.feed_item, parent, false);
                 vh = new ViewHolder();
                 vh.mTimeRemaining = (TextView) convertView.findViewById(R.id.showtimeTimeRemainingTextView);
-                //vh.mPoster = (ImageView) convertView.findViewById(R.id.showtimePoster);
+                vh.mPoster = (ImageView) convertView.findViewById(R.id.showtimePoster);
                 vh.mMovieTitle = (TextView) convertView.findViewById(R.id.showtimeTitleTextView);
                 vh.mTheaterName = (TextView) convertView.findViewById(R.id.showtimeTheaterTextView);
+                vh.mOtherShowTimesLayout = (LinearLayout) convertView.findViewById(R.id.otherShowTimesLayout);
+                vh.showOtherShowTimesButton = (ImageButton) convertView.findViewById(R.id.buttonMoreShowTimes);
                 convertView.setTag(vh);
             }
 
             vh = (ViewHolder) convertView.getTag();
 
-            ShowTime st = getItem(position);
+            Movie movie = getItem(position);
+            ArrayList<ShowTime> sts = mResult.getNextShowtimesByMovieId(movie.id_g);
 
-            vh.mTimeRemaining.setText(ApplicationUtils.getTimeString(st.mTimeRemaining));
-            vh.mMovieTitle.setText(mResult.mMovies.get(st.mMovieId).title);
-            vh.mTheaterName.setText(mResult.mTheaters.get(st.mTheaterId).mName);
+            ShowTime bst = sts.get(0);
+            if (movie.mBestNextShowtime != null)
+                bst = movie.mBestNextShowtime;
+
+            vh.mOtherShowTimesLayout.setVisibility(View.GONE);
+
+            for (int i = 1; i < sts.size(); i++) {
+                ShowTime s = sts.get(i);
+                TextView tv = new TextView(getActivity());
+                tv.setTextColor(Color.WHITE);
+                tv.setTextSize(14.0f);
+                tv.setPadding(5, 5, 5, 5);
+                tv.setText("" + ApplicationUtils.getTimeString(s.mTimeRemaining) + " " + mResult.mTheaters.get(s.mTheaterId).mName);
+                vh.mOtherShowTimesLayout.addView(tv);
+                vh.mOtherShowTimesLayout.requestLayout();
+            }
+
+            vh.mTimeRemaining.setText("" + ApplicationUtils.getTimeString(bst.mTimeRemaining));
+            vh.mMovieTitle.setText(mResult.mMovies.get(bst.mMovieId).title);
+            vh.mTheaterName.setText(mResult.mTheaters.get(bst.mTheaterId).mName);
+
+            final WeakReference<View> convertViewRef = new WeakReference<View>(convertView);
+
+            vh.showOtherShowTimesButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (convertViewRef != null && convertViewRef.get() != null) {
+                        if (((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.getVisibility() == View.VISIBLE) {
+                            ((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.setVisibility(View.GONE);
+                        } else {
+                            ((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.setVisibility(View.VISIBLE);
+                        }
+                        //((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.getParent().requestLayout();
+                        ((ViewGroup)((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.getParent()).invalidate();
+                    }
+
+                }
+            });
 
             //Get poster
-            if (mResult.mMovies.get(st.mMovieId).poster_path != null &&
-                    !mResult.mMovies.get(st.mMovieId).poster_path.equals("")) {
-                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mResult.mMovies.get(st.mMovieId).poster_path;
+            if (mResult.mMovies.get(bst.mMovieId).poster_path != null &&
+                    !mResult.mMovies.get(bst.mMovieId).poster_path.equals("")) {
+                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mResult.mMovies.get(bst.mMovieId).poster_path;
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
-            } else if (mCachedMovies != null && mCachedMovies.containsKey(st.mMovieId)
-                    && mCachedMovies.get(st.mMovieId).poster_path != null
-                    && !mCachedMovies.get(st.mMovieId).poster_path.equals("")) {
-                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(st.mMovieId).poster_path;
+            } else if (mCachedMovies != null && mCachedMovies.containsKey(bst.mMovieId)
+                    && mCachedMovies.get(bst.mMovieId).poster_path != null
+                    && !mCachedMovies.get(bst.mMovieId).poster_path.equals("")) {
+                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(bst.mMovieId).poster_path;
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else {
                 final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.mPoster);
-                ApiUtils.instance().retrieveMovieInfo(mResult.mMovies.get(st.mMovieId), new OnRetrieveMovieInfoCompleted() {
+                ApiUtils.instance().retrieveMovieInfo(mResult.mMovies.get(bst.mMovieId), new OnRetrieveMovieInfoCompleted() {
                     @Override
                     public void onRetrieveMovieInfoCompleted(Movie movie) {
                         String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + movie.poster_path;
@@ -239,6 +292,10 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment {
             TextView mMovieTitle;
             TextView mTimeRemaining;
             TextView mTheaterName;
+            LinearLayout mOtherShowTimesLayout;
+            ImageButton showOtherShowTimesButton;
         }
     }
+
+
 }

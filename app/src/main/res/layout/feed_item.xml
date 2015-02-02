@@ -90,7 +90,7 @@
             android:orientation="vertical"
             android:layout_below="@+id/showtimeTheaterTextView"
             android:id="@+id/otherShowTimesLayout"
-            android:visibility="invisible"/>
+            android:visibility="visible"/>
 
     </RelativeLayout>
 

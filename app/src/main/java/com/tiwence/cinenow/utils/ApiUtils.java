@@ -335,24 +335,29 @@ public class ApiUtils {
      * @param listener
      */
     public void retrieveMoviesInfo(Context context, final LinkedHashMap<String, Movie> movies, final OnRetrieveMoviesInfoCompleted listener) {
-        final LinkedHashMap<String, Movie> moviesCached = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(context, ApplicationUtils.MOVIES_FILE_NAME);
         new AsyncTask<Void, Movie, LinkedHashMap<String, Movie>>() {
             @Override
             protected LinkedHashMap<String, Movie> doInBackground(Void... params) {
 
                 Iterator it = movies.entrySet().iterator();
+
                 while (it.hasNext()) {
                     Map.Entry mapEntry = (Map.Entry) it.next();
                     Movie movie = (Movie) mapEntry.getValue();
                     if (movie.id == 0) {
                         String query = Uri.encode(movie.title).replaceAll("\\s", "+");
                         String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
+                        Log.d("Movie infos", searchMoVieUrl);
                         String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
                         try {
                             JSONObject movieJSON = new JSONObject(movieJSONString);
                             if (movieJSON.optInt("total_results") > 0) {
                                 movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
                                 movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
+                                movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
+                                //movie.overview = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("overview");
+                                movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
+                                movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optLong("vote_average");
                                 this.publishProgress(movie);
                             }
                         } catch (JSONException e) {
