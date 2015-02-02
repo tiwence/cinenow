@@ -53,7 +53,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_showtimes_feed, container, false);
-        mCachedMovies = ApplicationUtils.getMoviesInCache(getActivity());
+        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
 
         return mRootView;
     }
@@ -150,7 +150,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment {
                     public void onRetrieveMoviesInfoCompleted(LinkedHashMap<String, Movie> movies) {
                         Log.d("MOVIE SEARCH", "All movies get");
                         mResult.mMovies = movies;
-                        ApplicationUtils.saveMoviesInCache(getActivity(), mResult.mMovies);
+                        ApplicationUtils.saveDataInCache(getActivity(), mResult.mMovies, ApplicationUtils.MOVIES_FILE_NAME);
                         //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
                     }
 

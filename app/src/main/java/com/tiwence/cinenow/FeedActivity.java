@@ -2,6 +2,7 @@ package com.tiwence.cinenow;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -23,7 +24,9 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
@@ -44,6 +47,7 @@ import com.tiwence.cinenow.utils.ApplicationUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -51,7 +55,7 @@ import java.util.Locale;
 /**
  * Created by temarill on 27/01/2015.
  */
-public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCompleted, LocationListener, ActionBar.OnNavigationListener {
+public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCompleted, LocationListener, ActionBar.OnNavigationListener, SwipeFlingAdapterView.onFlingListener {
 
     //ActionBar stuff
     private EditText mEditSearch;
@@ -70,9 +74,12 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     private LinkedHashMap<String, Movie> mCachedMovies;
     private ArrayList<Movie> mNextMovies;
 
+    private int i;
+    private PlaceHolderFragment mTheatersFragment;
+
     private ActionBar mActionBar;
 
-    private static final int REFRESH_LOCATION_TIMEOUT = 5000;
+    private static final int REFRESH_LOCATION_TIMEOUT = 20000;
 
     /**
      * Text watcher used to search movies or theaters
@@ -104,11 +111,9 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         }
 
     };
-    private int i;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.splash_screen);
@@ -119,7 +124,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
-        mCachedMovies = ApplicationUtils.getMoviesInCache(this);
+        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(this, ApplicationUtils.MOVIES_FILE_NAME);
 
         refreshLocation();
     }
@@ -166,6 +171,16 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         if (id == R.id.action_settings) {
             return true;
         } else if (id == R.id.action_refresh) {
+            refresh();
+        } else if (id == R.id.action_theaters) {
+            mTheatersFragment = new PlaceHolderFragment();
+            Bundle b = new Bundle();
+            b.putSerializable("result", mResult);
+            mTheatersFragment.setArguments(b);
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.mainContainer, mTheatersFragment)
+                    .addToBackStack(null)
+                    .commit();
 
         }
 
@@ -182,10 +197,17 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     if (!mNewLocationFound && mLocation != null) {
                         makeToast(FeedActivity.this, "Location timeout, using last known location");
                         requestData();
+                        refreshTheatersFragment();
                         mLocationManager.removeUpdates(FeedActivity.this);
                     }
                 }
             }, REFRESH_LOCATION_TIMEOUT);
+        }
+    }
+
+    public void refreshTheatersFragment() {
+        if (mTheatersFragment != null && mTheatersFragment.isVisible()) {
+            mTheatersFragment.requestData(mLocation);
         }
     }
 
@@ -213,6 +235,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             @Override
             public void onRetrieveShowTimesCompleted(ShowTimesFeed result) {
                 mResult = result;
+                ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
                 updateDataList();
                 ApiUtils.instance().retrieveMoviesInfo(FeedActivity.this, result.mMovies, new OnRetrieveMoviesInfoCompleted() {
                     @Override
@@ -225,7 +248,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     public void onRetrieveMoviesInfoCompleted(LinkedHashMap<String, Movie> movies) {
                         Log.d("MOVIE SEARCH", "All movies get");
                         mResult.mMovies = movies;
-                        ApplicationUtils.saveMoviesInCache(FeedActivity.this, mResult.mMovies);
+                        ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mMovies, ApplicationUtils.MOVIES_FILE_NAME);
                         //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
                     }
 
@@ -245,61 +268,30 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     private void updateDataList() {
         //Adding feed view
-        setContentView(R.layout.fragment_showtimes_feed);
 
-        if (mResult.mMovies != null) {
+        if (mTheatersFragment == null || !mTheatersFragment.isVisible()) {
+            setContentView(R.layout.fragment_showtimes_feed);
+        }
+
+        if (mResult.mNextMovies != null && mResult.mNextMovies.size() > 0) {
             //ActionBar spinner adapter
             mActionBar.setDisplayShowTitleEnabled(false);
             mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+            mResult.mMovieKinds = getMovieKindsList(mResult.mNextMovies);
+            Log.d("FeedActivity", "Kinds : " + mResult.mMovieKinds.toString());
             mMoviesKindAdapter = new ArrayAdapter(this, R.layout.kind_item, mResult.mMovieKinds);
             mActionBar.setListNavigationCallbacks(mMoviesKindAdapter, this);
 
-            mNextMovies =  filterNextMovies(new ArrayList<>(mResult.mMovies.values()));
+            mNextMovies = new ArrayList<>(mResult.mNextMovies);
+
+            Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
+
             mFeedAdapter = new MoviesAdapter(FeedActivity.this, R.layout.feed_item,
                     mNextMovies);
             mFeedContainer = (SwipeFlingAdapterView) this.findViewById(R.id.frame);
 
             //set the listener and the adapter
-            mFeedContainer.setAdapter(mFeedAdapter);
-            mFeedContainer.setFlingListener(new SwipeFlingAdapterView.onFlingListener() {
-                @Override
-                public void removeFirstObjectInAdapter() {
-                    // this is the simplest way to delete an object from the Adapter (/AdapterView)
-                    Log.d("LIST", "removed object!");
-                    mNextMovies.remove(0);
-                    mFeedAdapter.notifyDataSetChanged();
-                }
-
-                @Override
-                public void onLeftCardExit(Object dataObject) {
-                    //Do something on the left!
-                    //You also have access to the original object.
-                    //If you want to use it just cast it (String) dataObject
-                    makeToast(FeedActivity.this, "Left!");
-                }
-
-                @Override
-                public void onRightCardExit(Object dataObject) {
-                    makeToast(FeedActivity.this, "Right!");
-                }
-
-                @Override
-                public void onAdapterAboutToEmpty(int itemsInAdapter) {
-                    // Ask for more data here
-                    mFeedAdapter.notifyDataSetChanged();
-                    Log.d("LIST", "notified");
-                    i++;
-                }
-
-                @Override
-                public void onScroll(float scrollProgressPercent) {
-                    View view = mFeedContainer.getSelectedView();
-                    if (view != null && view.findViewById(R.id.item_swipe_right_indicator) != null)
-                        view.findViewById(R.id.item_swipe_right_indicator).setAlpha(scrollProgressPercent < 0 ? -scrollProgressPercent : 0);
-                    if (view != null && view.findViewById(R.id.item_swipe_left_indicator) != null)
-                        view.findViewById(R.id.item_swipe_left_indicator).setAlpha(scrollProgressPercent > 0 ? scrollProgressPercent : 0);
-                }
-            });
+            mFeedContainer.init(this, mFeedAdapter);
 
             // Optionally add an OnItemClickListener
             mFeedContainer.setOnItemClickListener(new SwipeFlingAdapterView.OnItemClickListener() {
@@ -311,14 +303,19 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         }
     }
 
-    private ArrayList<Movie> filterNextMovies(ArrayList<Movie> movies) {
-        ArrayList<Movie> nextMovies = new ArrayList<>();
-        for (Movie m : movies) {
-            if (mResult.getNextShowtimesByMovieId(m.id_g) != null
-                    && mResult.getNextShowtimesByMovieId(m.id_g).size() > 0)
-                nextMovies.add(m);
+    /**
+     *
+     * @param nextMovies
+     * @return
+     */
+    private ArrayList<String> getMovieKindsList(ArrayList<Movie> nextMovies) {
+        ArrayList<String> movieKinds = new ArrayList<>();
+        movieKinds.add(getString(R.string.all));
+        for (Movie m : nextMovies) {
+            if (!movieKinds.contains(m.kind) && m.kind != null)
+                movieKinds.add(m.kind);
         }
-        return nextMovies;
+        return movieKinds;
     }
 
     @Override
@@ -332,6 +329,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             mIsFirstLocation = false;
             Toast.makeText(this, getString(R.string.location_done), Toast.LENGTH_LONG).show();
             this.requestData();
+            this.refreshTheatersFragment();
         }
         mLocationManager.removeUpdates(this);
 
@@ -379,20 +377,78 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
      * @param kindIndex
      */
     private void filterNextMoviesByKind(int kindIndex) {
-        mNextMovies = filterNextMovies(new ArrayList<>(mResult.mMovies.values()));
+        resetContainer();
+        mNextMovies = new ArrayList<>(mResult.mNextMovies);
         ArrayList<Movie> filteredMovies = new ArrayList<>();
         if (kindIndex > 0) {
             for (Movie m : mNextMovies) {
-                if (m.kind.equals(mResult.mMovieKinds.get(kindIndex))) {
+                if (m.kind != null && m.kind.equals(mResult.mMovieKinds.get(kindIndex))) {
                     filteredMovies.add(m);
                 }
             }
             mNextMovies = filteredMovies;
         }
+        Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
 
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                //Reload
+                mFeedAdapter = new MoviesAdapter(FeedActivity.this, R.layout.feed_item, mNextMovies);
+                mFeedContainer.init(FeedActivity.this, mFeedAdapter);
+                mFeedAdapter.notifyDataSetChanged();
+            }
+        }, 200);
+    }
+
+    private void resetContainer() {
+        mNextMovies = new ArrayList<Movie>();
         mFeedAdapter = new MoviesAdapter(this, R.layout.feed_item, mNextMovies);
-        mFeedContainer.setAdapter(mFeedAdapter);
+        mFeedContainer.init(this, mFeedAdapter);
         mFeedAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void removeFirstObjectInAdapter() {
+        // this is the simplest way to delete an object from the Adapter (/AdapterView)
+        Log.d("LIST", "removed object!");
+        mNextMovies.remove(0);
+        mFeedAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onLeftCardExit(Object dataObject) {
+        //Do something on the left!
+        //You also have access to the original object.
+        //If you want to use it just cast it (String) dataObject
+        makeToast(FeedActivity.this, "Left!");
+    }
+
+    @Override
+    public void onRightCardExit(Object dataObject) {
+        makeToast(FeedActivity.this, "Right!");
+    }
+
+    @Override
+    public void onAdapterAboutToEmpty(int itemsInAdapter) {
+        // Ask for more data here
+        mFeedAdapter.notifyDataSetChanged();
+        Log.d("LIST", "notified");
+        i++;
+    }
+
+    @Override
+    public void onScroll(float scrollProgressPercent) {
+        View view = mFeedContainer.getSelectedView();
+        if (view != null && view.findViewById(R.id.item_swipe_right_indicator) != null)
+            view.findViewById(R.id.item_swipe_right_indicator).setAlpha(scrollProgressPercent < 0 ? -scrollProgressPercent : 0);
+        if (view != null && view.findViewById(R.id.item_swipe_left_indicator) != null)
+            view.findViewById(R.id.item_swipe_left_indicator).setAlpha(scrollProgressPercent > 0 ? scrollProgressPercent : 0);
+    }
+
+    public void refresh() {
+        mIsFirstLocation = true;
+        refreshLocation();
     }
 
     /**
@@ -425,8 +481,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             vh = (ViewHolder) convertView.getTag();
 
             ShowTime st = getItem(position);
-
-            Log.d("ST", "" + st);
 
             vh.mTimeRemaining.setText("" + ApplicationUtils.getTimeString(st.mTimeRemaining));
             vh.mMovieTitle.setText(mResult.mMovies.get(st.mMovieId).title);
@@ -492,6 +546,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 vh.mPoster = (ImageView) convertView.findViewById(R.id.showtimePoster);
                 vh.mMovieTitle = (TextView) convertView.findViewById(R.id.showtimeTitleTextView);
                 vh.mTheaterName = (TextView) convertView.findViewById(R.id.showtimeTheaterTextView);
+                vh.mOtherShowTimesLayout = (LinearLayout) convertView.findViewById(R.id.otherShowTimesLayout);
+                vh.showOtherShowTimesButton = (ImageButton) convertView.findViewById(R.id.buttonMoreShowTimes);
                 convertView.setTag(vh);
             }
 
@@ -499,25 +555,56 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
             Movie movie = getItem(position);
             ArrayList<ShowTime> sts = mResult.getNextShowtimesByMovieId(movie.id_g);
-            ShowTime st = sts.get(0);
 
-            vh.mTimeRemaining.setText("" + ApplicationUtils.getTimeString(st.mTimeRemaining));
-            vh.mMovieTitle.setText(mResult.mMovies.get(st.mMovieId).title);
-            vh.mTheaterName.setText(mResult.mTheaters.get(st.mTheaterId).mName);
+            ShowTime bst = sts.get(0);
+            if (movie.mBestNextShowtime != null)
+                bst = movie.mBestNextShowtime;
+
+            for (int i = 1; i < sts.size(); i++) {
+                ShowTime s = sts.get(i);
+                TextView tv = new TextView(FeedActivity.this);
+                tv.setTextColor(Color.WHITE);
+                tv.setTextSize(14.0f);
+                tv.setPadding(5, 5, 5, 5);
+                tv.setText("" + ApplicationUtils.getTimeString(s.mTimeRemaining) + " " + mResult.mTheaters.get(s.mTheaterId).mName);
+                vh.mOtherShowTimesLayout.addView(tv);
+                vh.mOtherShowTimesLayout.requestLayout();
+            }
+
+            vh.mTimeRemaining.setText("" + ApplicationUtils.getTimeString(bst.mTimeRemaining));
+            vh.mMovieTitle.setText(mResult.mMovies.get(bst.mMovieId).title);
+            vh.mTheaterName.setText(mResult.mTheaters.get(bst.mTheaterId).mName);
+
+            final WeakReference<View> convertViewRef = new WeakReference<View>(convertView);
+
+            vh.showOtherShowTimesButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (convertViewRef != null && convertViewRef.get() != null) {
+                        if (((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.getVisibility() == View.VISIBLE) {
+                            ((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.setVisibility(View.INVISIBLE);
+                        } else {
+                            ((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.setVisibility(View.VISIBLE);
+                        }
+                    }
+                    ((ViewGroup)convertViewRef.get()).invalidate();
+
+                }
+            });
 
             //Get poster
-            if (mResult.mMovies.get(st.mMovieId).poster_path != null &&
-                    !mResult.mMovies.get(st.mMovieId).poster_path.equals("")) {
-                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mResult.mMovies.get(st.mMovieId).poster_path;
+            if (mResult.mMovies.get(bst.mMovieId).poster_path != null &&
+                    !mResult.mMovies.get(bst.mMovieId).poster_path.equals("")) {
+                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mResult.mMovies.get(bst.mMovieId).poster_path;
                 Picasso.with(FeedActivity.this).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
-            } else if (mCachedMovies != null && mCachedMovies.containsKey(st.mMovieId)
-                    && mCachedMovies.get(st.mMovieId).poster_path != null
-                    && !mCachedMovies.get(st.mMovieId).poster_path.equals("")) {
-                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(st.mMovieId).poster_path;
+            } else if (mCachedMovies != null && mCachedMovies.containsKey(bst.mMovieId)
+                    && mCachedMovies.get(bst.mMovieId).poster_path != null
+                    && !mCachedMovies.get(bst.mMovieId).poster_path.equals("")) {
+                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(bst.mMovieId).poster_path;
                 Picasso.with(FeedActivity.this).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else {
                 final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.mPoster);
-                ApiUtils.instance().retrieveMovieInfo(mResult.mMovies.get(st.mMovieId), new OnRetrieveMovieInfoCompleted() {
+                ApiUtils.instance().retrieveMovieInfo(mResult.mMovies.get(bst.mMovieId), new OnRetrieveMovieInfoCompleted() {
                     @Override
                     public void onRetrieveMovieInfoCompleted(Movie movie) {
                         String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + movie.poster_path;
@@ -541,6 +628,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             TextView mMovieTitle;
             TextView mTimeRemaining;
             TextView mTheaterName;
+            LinearLayout mOtherShowTimesLayout;
+            ImageButton showOtherShowTimesButton;
         }
     }
 }

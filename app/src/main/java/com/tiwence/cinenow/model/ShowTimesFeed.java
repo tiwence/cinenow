@@ -11,6 +11,7 @@ public class ShowTimesFeed implements Serializable {
 
     public LinkedHashMap<String, MovieTheater> mTheaters;
     public LinkedHashMap<String, Movie> mMovies;
+    public ArrayList<Movie> mNextMovies;
     public ArrayList<ShowTime> mNextShowTimes;
     public ArrayList<ShowTime> mShowTimes;
     public ArrayList<String> mMovieKinds;

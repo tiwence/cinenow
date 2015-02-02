@@ -16,6 +16,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -23,19 +24,21 @@ import java.util.TimeZone;
  */
 public class ApplicationUtils {
 
-    private static final String MOVIES_FILE_NAME = "movies";
+    public static final String MOVIES_FILE_NAME = "movies";
+    public static final String THEATERS_FILE_NAME = "theaters";
 
     /**
      * @param context
-     * @param movies
+     * @param data
      */
-    public static void saveMoviesInCache(Context context, LinkedHashMap<String, Movie> movies) {
+    public static void saveDataInCache(Context context, Object data, String fileName) {
+
         FileOutputStream fos = null;
         ObjectOutputStream oos = null;
         try {
-            fos = context.openFileOutput(MOVIES_FILE_NAME, Context.MODE_PRIVATE);
+            fos = context.openFileOutput(fileName, Context.MODE_PRIVATE);
             oos = new ObjectOutputStream(fos);
-            oos.writeObject(movies);
+            oos.writeObject(data);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -54,14 +57,13 @@ public class ApplicationUtils {
      * @param context
      * @return
      */
-    public static LinkedHashMap<String, Movie> getMoviesInCache(Context context) {
+    public static Object getDataInCache(Context context, String fileName) {
         FileInputStream fis = null;
         ObjectInputStream ois = null;
-        LinkedHashMap<String, Movie> movies = null;
         try {
-            fis = context.openFileInput(MOVIES_FILE_NAME);
+            fis = context.openFileInput(fileName);
             ois = new ObjectInputStream(fis);
-            movies = (LinkedHashMap<String, Movie>) ois.readObject();
+            return ois.readObject();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -70,7 +72,7 @@ public class ApplicationUtils {
             e.printStackTrace();
         }
 
-        return movies;
+        return null;
     }
 
     /**

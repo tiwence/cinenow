@@ -29,4 +29,5 @@ dependencies {
     compile 'com.github.kikoso:SwipeableCards:1.0-RELEASE@aar'
     compile 'com.lorentzos.swipecards:library:+@aar'
     compile 'com.sothree.slidinguppanel:library:2.0.4'
+    compile files('libs/mapquest-android-sdk-1.0.5.jar')
 }

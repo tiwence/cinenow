@@ -30,7 +30,10 @@ import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 
 import it.sephiroth.android.library.widget.HListView;
@@ -63,7 +66,12 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
 
         mListView = (ListView) rootView.findViewById(R.id.listView);
 
-        mCachedMovies = ApplicationUtils.getMoviesInCache(getActivity());
+        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
+
+        mResult = (ShowTimesFeed) getArguments().getSerializable("result");
+
+        if (mResult.mTheaters != null && mResult.mTheaters.size() > 0)
+            updateDataList();
 
         return rootView;
     }
@@ -82,8 +90,10 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
             public void onRetrieveShowTimesCompleted(ShowTimesFeed result) {
                 mResult = result;
                 updateDataList();
+                ApplicationUtils.saveDataInCache(getActivity(), mResult.mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
                 mSwipeRefresh.setRefreshing(false);
-                getActivity().setProgressBarIndeterminateVisibility(false);
+
+                //Getting movies infos such as his poster, casting etc.
                 ApiUtils.instance().retrieveMoviesInfo(getActivity(), result.mMovies, new OnRetrieveMoviesInfoCompleted() {
                     @Override
                     public void onProgressMovieInfoCompleted(Movie movie) {
@@ -95,7 +105,7 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
                     public void onRetrieveMoviesInfoCompleted(LinkedHashMap<String, Movie> movies) {
                         Log.d("MOVIE SEARCH", "All movies get");
                         mResult.mMovies = movies;
-                        ApplicationUtils.saveMoviesInCache(getActivity(), mResult.mMovies);
+                        ApplicationUtils.saveDataInCache(getActivity(), mResult.mMovies, ApplicationUtils.MOVIES_FILE_NAME);
                         //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
                     }
 
@@ -115,15 +125,55 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
     }
 
     private void updateDataList() {
-        mTheaterAdapter = new TheaterAdapter(mResult.mTheaters);
+        ArrayList<MovieTheater> theaters = new ArrayList<MovieTheater>(mResult.mTheaters.values());
+        Collections.sort(theaters, new Comparator<MovieTheater>() {
+            @Override
+            public int compare(MovieTheater lhs, MovieTheater rhs) {
+                if (lhs.mDistance < rhs.mDistance) return  -1;
+                else if (lhs.mDistance > rhs.mDistance) return 1;
+                return 0;
+            }
+        });
+        mTheaterAdapter = new TheaterAdapter(theaters);
         mListView.setAdapter(mTheaterAdapter);
     }
 
     @Override
     public void onRefresh() {
         mSwipeRefresh.setRefreshing(true);
-        ((MainActivity) getActivity()).refreshLocation();
-        requestData(((MainActivity) getActivity()).getLocation());
+        ((FeedActivity)getActivity()).refresh();
+        //TODO refresh correctly
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        Log.d("Fragment", "Stop");
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.d("Fragment", "Pause");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d("Fragment", "Destroy");
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        Log.d("Fragment", "Detach");
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        Log.d("Fragment", "Destroy view");
+
     }
 
     /**
@@ -131,11 +181,10 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
      */
     public class TheaterAdapter extends BaseAdapter {
 
-        LinkedHashMap<String, MovieTheater> mTheaters;
+        ArrayList<MovieTheater> mTheaters;
         LayoutInflater mInflater;
-        ShowtimeAdapter mShowTimeAdapter;
 
-        public TheaterAdapter(LinkedHashMap<String, MovieTheater> theaters) {
+        public TheaterAdapter(ArrayList<MovieTheater> theaters) {
             this.mTheaters = theaters;
             this.mInflater = LayoutInflater.from(getActivity());
         }
@@ -170,7 +219,7 @@ public class PlaceHolderFragment extends Fragment implements SwipeRefreshLayout.
                 convertView.setTag(vh);
             }
             vh = (ViewHolder) convertView.getTag();
-            MovieTheater mt = (new ArrayList<MovieTheater>(mTheaters.values())).get(position);
+            MovieTheater mt = mTheaters.get(position);
             vh.mTheaterName.setText(mt.mName);
             vh.mHListView.setAdapter(new ShowtimeAdapter(mResult.getNextShowTimesByTheaterId(mt.mId)));
 

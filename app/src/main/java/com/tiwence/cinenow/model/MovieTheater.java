@@ -17,7 +17,9 @@ public class MovieTheater implements Serializable {
     public ArrayList<ShowTime> mShowTimes;
     public ArrayList<ShowTime> mNextShowTimes;
 
-    public double mDistance;
+    public double mDistance = 10000;
+    public double mLatitude = -10000;
+    public double mLongitude = -10000;
 
     //public ArrayList<Movie> mMovies;
 

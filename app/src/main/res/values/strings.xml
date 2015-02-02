@@ -12,5 +12,6 @@
     <string name="action_feed">Feed</string>
     <string name="action_kind">Kinds</string>
     <string name="all">Tous</string>
+    <string name="action_theaters">Theaters</string>
 
 </resources>
