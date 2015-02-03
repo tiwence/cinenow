@@ -19,7 +19,7 @@ public class Movie implements Serializable {
     public String poster_path;
     public String backdrop_path; //size = 396 ?
     public String release_date;
-    public float vote_average;
+    public long vote_average;
     public String duration_time;
     public String kind;
     public int mFirstTimeRemaining = -1;

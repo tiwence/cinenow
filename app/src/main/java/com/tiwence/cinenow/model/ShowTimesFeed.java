@@ -49,6 +49,24 @@ public class ShowTimesFeed implements Serializable {
         return showTimes;
     }
 
+    public LinkedHashMap<MovieTheater, ArrayList<ShowTime>> getShowTimesByTheatersForMovie(String movieId) {
+        LinkedHashMap<MovieTheater, ArrayList<ShowTime>> dataset = new LinkedHashMap<>();
+        for (ShowTime st : mShowTimes) {
+            if (st.mMovieId.equals(movieId)) {
+                if (dataset.containsKey(this.mTheaters.get(st.mTheaterId))) {
+                    ArrayList<ShowTime> sts = dataset.get(this.mTheaters.get(st.mTheaterId));
+                    sts.add(st);
+                } else {
+                    ArrayList<ShowTime> sts = new ArrayList<>();
+                    sts.add(st);
+                    dataset.put(this.mTheaters.get(st.mTheaterId), sts);
+                }
+            }
+        }
+
+        return dataset;
+    }
+
     public ArrayList<ShowTime> getShowTimesByTheaterId(String theaterId) {
         ArrayList<ShowTime> showTimes = null;
         for (ShowTime st : mShowTimes) {

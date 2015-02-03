@@ -205,6 +205,7 @@ public class ApiUtils {
                             movie.id_g = idG;
                             movie.title = movieDiv.getElementsByClass("name").get(0).getElementsByTag("a").get(0).text();
                             movie.duration_time = movieDiv.getElementsByClass("info").get(0).text().split(" - ")[0];
+                            movie.infos_g = movieDiv.getElementsByClass("info").get(0).text();
                             if (movieDiv.getElementsByClass("info").get(0).text().split(" - ").length > 2)
                                 movie.kind = movieDiv.getElementsByClass("info").get(0).text().split(" - ")[2].trim();
                             movie.mFirstTimeRemaining = -1;
@@ -301,15 +302,16 @@ public class ApiUtils {
             protected Movie doInBackground(Void... params) {
 
                 String query = Uri.encode(movie.title.replaceAll("\\s", "+"));
-                String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr&year=" + ApplicationUtils.getYear();
+                String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
                 String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
-                Log.d("SEARCH MOVIE", searchMoVieUrl);
                 try {
                     JSONObject movieJSON = new JSONObject(movieJSONString);
                     if (movieJSON.optInt("total_results") > 0) {
                         movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
                         movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
-                        //Log.d("MOVIE SEARCH", movie.title + "," + movie.poster_path);
+                        movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
+                        movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
+                        movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optLong("vote_average");
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -346,7 +348,7 @@ public class ApiUtils {
                     Movie movie = (Movie) mapEntry.getValue();
                     if (movie.id == 0) {
                         String query = Uri.encode(movie.title).replaceAll("\\s", "+");
-                        String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
+                        String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr&year=";
                         Log.d("Movie infos", searchMoVieUrl);
                         String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
                         try {
@@ -398,17 +400,19 @@ public class ApiUtils {
 
             @Override
             protected Object doInBackground(Void... params) {
-                Document doc = null;
+                if (queryName.trim().length() > 0) {
+                    Document doc = null;
 
-                String query = location.getLatitude() + "," + location.getLongitude() +
-                        "&q=" + Uri.encode(queryName).replaceAll("\\s", "+") + "&sort=1";
-                Log.d("Google movies query", URL_API_MOVIE_THEATERS + query);
+                    String query = location.getLatitude() + "," + location.getLongitude() +
+                            "&q=" + Uri.encode(queryName).replaceAll("\\s", "+") + "&sort=1";
+                    Log.d("Google movies query", URL_API_MOVIE_THEATERS + query);
 
-                try {
-                    doc = Jsoup.connect(URL_API_MOVIE_THEATERS + query).get();
-                    return createMovieOrTheater(doc);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    try {
+                        doc = Jsoup.connect(URL_API_MOVIE_THEATERS + query).get();
+                        return createMovieOrTheater(doc);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 return null;
@@ -444,10 +448,19 @@ public class ApiUtils {
             if (content.getAllElements().get(0).getElementsByClass("movie") != null) {
                 Element movieContent = content.getElementsByClass("movie").get(0);
                 Movie movie = new Movie();
-                movie.title = movieContent.getElementsByTag("h2").get(0).text();
-                movie.infos_g = movieContent.getElementsByClass("info").get(0).text();
-                movie.overview = movieContent.getElementsByClass("syn").get(0).text();
-                if (movieContent.getElementsByClass("showtimes") != null
+
+                Element leftSection = doc.getElementsByClass("section").get(0);
+                if (leftSection.getElementsByAttributeValue("name", "mid") != null
+                        && leftSection.getElementsByAttributeValue("name", "mid").size() > 0) {
+                    movie.id_g = leftSection.getElementsByAttributeValue("name", "mid").get(0).attr("value");
+                    movie.title = movieContent.getElementsByTag("h2").get(0).text();
+                    movie.infos_g = movieContent.getElementsByClass("info").get(0).text();
+                    movie.overview = movieContent.getElementsByClass("syn").get(0).text();
+                } else {
+                    return null;
+                }
+
+                /*if (movieContent.getElementsByClass("showtimes") != null
                         && movieContent.getElementsByClass("showtimes").get(0).getElementsByClass("theater") != null
                         && movieContent.getElementsByClass("showtimes").get(0).getElementsByClass("theater").size() > 0) {
 
@@ -467,7 +480,7 @@ public class ApiUtils {
                             }
                         }
                     }
-                }
+                }*/
                 return movie;
             } else if (content.getAllElements().get(0).getElementsByClass("theater") != null) {
 

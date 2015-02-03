@@ -13,16 +13,23 @@ import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.SpinnerAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
+import com.squareup.picasso.Picasso;
+import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
@@ -32,8 +39,12 @@ import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
 
+import org.w3c.dom.Text;
+
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -42,7 +53,7 @@ import java.util.Locale;
 public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCompleted, LocationListener, ActionBar.OnNavigationListener {
 
     //ActionBar stuff
-    private EditText mEditSearch;
+    private AutoCompleteTextView mEditSearch;
     private SpinnerAdapter mMoviesKindAdapter;
 
     private LocationManager mLocationManager;
@@ -54,6 +65,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     //private ShowTimesAdapter mFeedAdapter;
 
     private ShowTimesFeed mResult;
+    private LinkedHashMap<String, Movie> mMoviesCached;
+    private LinkedHashMap<String, MovieTheater> mTheatersCached;
 
     private TheatersFragment mTheatersFragment;
     private MoviesFeedFragment mMoviesFeedFragment;
@@ -105,6 +118,9 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         mLocation = mLocationManager.getLastKnownLocation(getProviderName());
 
+        mMoviesCached = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(this, ApplicationUtils.MOVIES_FILE_NAME);
+        mTheatersCached = (LinkedHashMap<String, MovieTheater>) ApplicationUtils.getDataInCache(this, ApplicationUtils.THEATERS_FILE_NAME);
+
         refreshLocation();
     }
 
@@ -142,6 +158,10 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         return true;
     }
 
+    public ShowTimesFeed getResults() {
+        return this.mResult;
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
@@ -159,6 +179,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             mTheatersFragment.setArguments(b);
 
             getSupportFragmentManager().beginTransaction()
+                    .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                            android.R.anim.slide_in_left, android.R.anim.slide_out_right)
                     .replace(R.id.mainContainer, mTheatersFragment)
                     .addToBackStack(null)
                     .commit();
@@ -276,7 +298,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         mActionBar.setListNavigationCallbacks(mMoviesKindAdapter, this);
     }
 
-
     /**
      *
      * @param nextMovies
@@ -325,8 +346,44 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     }
 
     @Override
-    public void onRetrieveQueryMovieCompleted(Movie movie) {
+    public void onRetrieveQueryDataset(ShowTimesFeed stf) {
 
+    }
+
+    @Override
+    public void onRetrieveQueryMovieCompleted(Movie movie) {
+        if (movie != null) {
+            Log.d("Movie query completed", movie.title + ", " + movie.id_g);
+
+            List<Object> m = new ArrayList<>();
+            m.add(movie);
+
+            SearchResultsAdapter searchedAppsAdapter = new SearchResultsAdapter(
+                    getApplicationContext(), R.layout.spinner_search_item, m);
+            mEditSearch.setAdapter(searchedAppsAdapter);
+            mEditSearch.showDropDown();
+            /*mEditSearch.setOnItemClickListener(new OnItemClickListener() {
+
+                @Override
+                public void onItemClick(AdapterView<?> arg0, View arg1,
+                                        int arg2, long arg3) {
+                    if (arg2 < result.size()) {
+                        if (result.get(arg2) != null) {
+                            mEditSearch.setText(result.get(arg2).mName);
+                            Intent i = new Intent(getApplicationContext(),
+                                    AppDetailActivity.class);
+                            i.putExtra("app", result.get(arg2));
+                            startActivity(i);
+                            MainTabsActivity.this
+                                    .overridePendingTransition(
+                                            android.R.anim.slide_in_left,
+                                            android.R.anim.slide_out_right);
+                        }
+                    }
+
+                }
+            });*/
+        }
     }
 
     @Override
@@ -370,5 +427,70 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     public ActionBar getMActionBar() {
         return mActionBar;
+    }
+
+    /**
+     *
+     */
+    public class SearchResultsAdapter extends ArrayAdapter<Object> {
+
+        private Context mContext;
+        private List<Object> dataset;
+
+        public SearchResultsAdapter(Context context, int resource, List<Object> objects) {
+            super(context, resource, objects);
+            mContext = context;
+            dataset = objects;
+        }
+
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ViewHolder vh = null;
+            if (convertView == null) {
+                convertView = LayoutInflater.from(mContext).inflate(R.layout.spinner_search_item, null);
+                vh = new ViewHolder();
+                vh.searchImage = (ImageView) convertView.findViewById(R.id.spinnerSearchImage);
+                vh.searchName = (TextView) convertView.findViewById(R.id.spinnerSearchName);
+                vh.searchInfos = (TextView) convertView.findViewById(R.id.spinnerSearchInfos);
+                convertView.setTag(vh);
+            }
+
+            vh = (ViewHolder) convertView.getTag();
+
+            Object data = getItem(position);
+            if (data instanceof Movie) {
+                vh.searchName.setText(((Movie)data).title);
+                vh.searchInfos.setText(((Movie)data).infos_g);
+                if (((Movie)data).poster_path != null) {
+                    Picasso.with(mContext).load(((Movie)data).poster_path).placeholder(R.drawable.poster_placeholder).into(vh.searchImage);
+                } else {
+                    final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.searchImage);
+
+                    ApiUtils.instance().retrieveMovieInfo((Movie)data, new OnRetrieveMovieInfoCompleted() {
+                        @Override
+                        public void onRetrieveMovieInfoCompleted(Movie movie) {
+                            if (imgViewRef != null && imgViewRef.get() != null)
+                                Picasso.with(mContext).load(movie.poster_path).placeholder(R.drawable.poster_placeholder).into(imgViewRef.get());
+                        }
+
+                        @Override
+                        public void onRetrieveMovieError(String message) {
+
+                        }
+                    });
+                }
+            } else if (data instanceof MovieTheater) {
+
+            }
+
+            return convertView;
+        }
+
+        class ViewHolder {
+            ImageView searchImage;
+            TextView searchName;
+            TextView searchInfos;
+        }
     }
 }

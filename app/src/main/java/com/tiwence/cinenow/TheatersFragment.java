@@ -9,7 +9,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,7 +51,6 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
     public SwipeRefreshLayout mSwipeRefresh;
 
     //ArrayList<MovieTheater> mTheaters;
-    private ShowTimesFeed mResult;
     private LinkedHashMap<String, Movie> mCachedMovies;
     private ArrayList<MovieTheater> mTheaters;
     private TheaterAdapter mTheaterAdapter;
@@ -72,26 +73,35 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         mListView = (ListView) rootView.findViewById(R.id.listView);
 
         mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
-        mResult = (ShowTimesFeed) getArguments().getSerializable("result");
+        //mResult = (ShowTimesFeed) getArguments().getSerializable("result");
         mKindIndex =  getArguments().getInt("kindIndex");
 
-        if (mResult.mTheaters != null && mResult.mTheaters.size() > 0)
-            updateDataList(mResult, mKindIndex);
+        if (getResults().mTheaters != null && getResults().mTheaters.size() > 0)
+            updateDataList(getResults(), mKindIndex);
 
         return rootView;
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
+    private ShowTimesFeed getResults() {
+        if (getActivity() != null)
+            return ((FeedActivity)getActivity()).getResults();
+        else
+            return null;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
+            ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+            mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
+            filterFragment(mKindIndex);
+        }
+    }
 
     public void updateDataList(ShowTimesFeed result, int kindIndex) {
-        mResult = result;
         mKindIndex = kindIndex;
         filterFragment(mKindIndex);
-
     }
 
     @Override
@@ -120,23 +130,25 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
      *
      */
     private void filterTheaters() {
-        mTheaters = new ArrayList<MovieTheater>(this.mResult.mTheaters.values());
-        if (mKindIndex > 0) {
-            ArrayList<MovieTheater> filteredTheaters = new ArrayList<>();
-            int totalNbST = 0;
-            for (MovieTheater theater : mTheaters) {
-                totalNbST = 0;
-                for (ShowTime st : this.mResult.getNextShowTimesByTheaterId(theater.mId)) {
-                    if (mResult.mMovies.get(st.mMovieId).kind != null &&
-                            mResult.mMovies.get(st.mMovieId).kind.equals(mResult.mMovieKinds.get(mKindIndex))) {
-                        totalNbST ++;
+        if (this.getResults() != null) {
+            mTheaters = new ArrayList<MovieTheater>(this.getResults().mTheaters.values());
+            if (mKindIndex > 0) {
+                ArrayList<MovieTheater> filteredTheaters = new ArrayList<>();
+                int totalNbST = 0;
+                for (MovieTheater theater : mTheaters) {
+                    totalNbST = 0;
+                    for (ShowTime st : this.getResults().getNextShowTimesByTheaterId(theater.mId)) {
+                        if (getResults().mMovies.get(st.mMovieId).kind != null &&
+                                getResults().mMovies.get(st.mMovieId).kind.equals(getResults().mMovieKinds.get(mKindIndex))) {
+                            totalNbST ++;
+                        }
+                    }
+                    if (totalNbST > 0) {
+                        filteredTheaters.add(theater);
                     }
                 }
-                if (totalNbST > 0) {
-                    filteredTheaters.add(theater);
-                }
+                mTheaters = filteredTheaters;
             }
-            mTheaters = filteredTheaters;
         }
     }
 
@@ -186,17 +198,18 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
             final MovieTheater mt = mTheaters.get(position);
             vh.mTheaterName.setText(mt.mName);
 
-            vh.mHListView.setAdapter(new ShowtimeAdapter(filteredShowTime(mResult.getNextShowTimesByTheaterId(mt.mId))));
+            vh.mHListView.setAdapter(new ShowtimeAdapter(filteredShowTime(getResults().getNextShowTimesByTheaterId(mt.mId))));
             vh.mHListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                    Log.d("CLICKED ", "" + i);
-                    ShowTime st = filteredShowTime(mResult.getNextShowTimesByTheaterId(mt.mId)).get(i);
+                    ShowTime st = filteredShowTime(getResults().getNextShowTimesByTheaterId(mt.mId)).get(i);
                     MovieFragment mf = new MovieFragment();
                     Bundle b = new Bundle();
-                    b.putSerializable("movie", mResult.mMovies.get(st.mMovieId));
+                    b.putString("movie_id", st.mMovieId);
                     mf.setArguments(b);
                     getActivity().getSupportFragmentManager().beginTransaction()
+                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
                             .replace(R.id.mainContainer, mf)
                             .addToBackStack(null)
                             .commit();
@@ -224,8 +237,8 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
             ArrayList<ShowTime> showTimes = new ArrayList<>();
             for (ShowTime st : nextShowTimesByTheaterId) {
 
-                if (mResult.mMovies.get(st.mMovieId).kind != null &&
-                        mResult.mMovies.get(st.mMovieId).kind.equals(mResult.mMovieKinds.get(mKindIndex))) {
+                if (getResults().mMovies.get(st.mMovieId).kind != null &&
+                        getResults().mMovies.get(st.mMovieId).kind.equals(getResults().mMovieKinds.get(mKindIndex))) {
                     showTimes.add(st);
                 }
             }
@@ -279,12 +292,12 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
 
             vh = (ViewHolder) convertView.getTag();
             vh.mTimeRemaining.setText(ApplicationUtils.getTimeString(mShowTimes.get(position).mTimeRemaining));
-            vh.mMovieTitle.setText(mResult.mMovies.get(mShowTimes.get(position).mMovieId).title);
+            vh.mMovieTitle.setText(getResults().mMovies.get(mShowTimes.get(position).mMovieId).title);
 
             //Get poster
-            if (mResult.mMovies.get(mShowTimes.get(position).mMovieId).poster_path != null &&
-                    !mResult.mMovies.get(mShowTimes.get(position).mMovieId).poster_path.equals("")) {
-                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mResult.mMovies.get(mShowTimes.get(position).mMovieId).poster_path;
+            if (getResults().mMovies.get(mShowTimes.get(position).mMovieId).poster_path != null &&
+                    !getResults().mMovies.get(mShowTimes.get(position).mMovieId).poster_path.equals("")) {
+                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + getResults().mMovies.get(mShowTimes.get(position).mMovieId).poster_path;
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else if (mCachedMovies != null && mCachedMovies.containsKey(mShowTimes.get(position).mMovieId)
                     && mCachedMovies.get(mShowTimes.get(position).mMovieId).poster_path != null
@@ -293,7 +306,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else {
                 final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.mPoster);
-                ApiUtils.instance().retrieveMovieInfo(mResult.mMovies.get(mShowTimes.get(position).mMovieId), new OnRetrieveMovieInfoCompleted() {
+                ApiUtils.instance().retrieveMovieInfo(getResults().mMovies.get(mShowTimes.get(position).mMovieId), new OnRetrieveMovieInfoCompleted() {
                     @Override
                     public void onRetrieveMovieInfoCompleted(Movie movie) {
                         String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + movie.poster_path;

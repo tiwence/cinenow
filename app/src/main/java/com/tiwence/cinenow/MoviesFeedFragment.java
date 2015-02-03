@@ -106,19 +106,21 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     @Override
     public void onResume() {
         super.onResume();
-        Log.d("MFF", "ON RESUME");
         if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
+            ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
             mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
             filterFragment(mKindIndex);
         }
     }
 
     private void resetContainer() {
-        mNextMovies = new ArrayList<Movie>();
-        mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
-        mFeedContainer.setAdapter(mFeedAdapter);
-        mFeedContainer.setFlingListener(this);
-        mFeedAdapter.notifyDataSetChanged();
+        if (mFeedContainer != null) {
+            mNextMovies = new ArrayList<Movie>();
+            mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
+            mFeedContainer.setAdapter(mFeedAdapter);
+            mFeedContainer.setFlingListener(this);
+            mFeedAdapter.notifyDataSetChanged();
+        }
     }
 
     public void filterFragment(int kindIndex) {
@@ -185,7 +187,9 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             view.findViewById(R.id.item_swipe_left_indicator).setAlpha(scrollProgressPercent > 0 ? scrollProgressPercent : 0);
     }
 
-
+    /**
+     *
+     */
     public class MoviesAdapter extends ArrayAdapter<Movie> {
 
         private Context mContext;
