@@ -20,6 +20,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -57,6 +58,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     private ArrayList<Movie> mNextMovies;
     private MoviesAdapter mFeedAdapter;
     private int mKindIndex;
+    private String mIdSelected = "";
 
     @Nullable
     @Override
@@ -81,6 +83,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         //Adding feed view
         mResult = result;
         if (this.mResult.mNextMovies != null && this.mResult.mNextMovies.size() > 0) {
+            Log.d("Feeds", "UPDATE DATA LIST");
             //ActionBar spinner adapter
             mNextMovies = new ArrayList<>(this.mResult.mNextMovies);
             Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
@@ -108,6 +111,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         super.onResume();
         if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
             ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+            ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(false);
             mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
             filterFragment(mKindIndex);
         }
@@ -115,6 +119,8 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
 
     private void resetContainer() {
         if (mFeedContainer != null) {
+            Log.d("Feeds", "RESET");
+
             mNextMovies = new ArrayList<Movie>();
             mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
             mFeedContainer.setAdapter(mFeedAdapter);
@@ -142,11 +148,15 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             @Override
             public void run() {
                 //Reload
-                mFeedAdapter = new MoviesFeedFragment.MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
-                //mFeedContainer.init(getActivity(), mFeedAdapter);
-                mFeedContainer.setAdapter(mFeedAdapter);
-                mFeedContainer.setFlingListener(MoviesFeedFragment.this);
-                mFeedAdapter.notifyDataSetChanged();
+                if (mNextMovies != null && mFeedContainer != null) {
+                    Log.d("Feeds", "FILTER HANDLER DATA LIST");
+
+                    mFeedAdapter = new MoviesFeedFragment.MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
+                    //mFeedContainer.init(getActivity(), mFeedAdapter);
+                    mFeedContainer.setAdapter(mFeedAdapter);
+                    mFeedContainer.setFlingListener(MoviesFeedFragment.this);
+                    mFeedAdapter.notifyDataSetChanged();
+                }
             }
         }, 200);
     }
@@ -200,7 +210,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(final int position, View convertView, ViewGroup parent) {
             ViewHolder vh = null;
             LayoutInflater mInflater = (LayoutInflater) mContext
                     .getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
@@ -211,21 +221,19 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 vh.mPoster = (ImageView) convertView.findViewById(R.id.showtimePoster);
                 vh.mMovieTitle = (TextView) convertView.findViewById(R.id.showtimeTitleTextView);
                 vh.mTheaterName = (TextView) convertView.findViewById(R.id.showtimeTheaterTextView);
-                vh.mOtherShowTimesLayout = (LinearLayout) convertView.findViewById(R.id.otherShowTimesLayout);
+                vh.mOtherShowTimesLayout = (LinearLayout) convertView.findViewById(R.id.movieShowTimesLayout);
                 vh.showOtherShowTimesButton = (ImageButton) convertView.findViewById(R.id.buttonMoreShowTimes);
                 convertView.setTag(vh);
             }
 
             vh = (ViewHolder) convertView.getTag();
 
-            Movie movie = getItem(position);
-            ArrayList<ShowTime> sts = mResult.getNextShowtimesByMovieId(movie.id_g);
+            final Movie movie = mNextMovies.get(position);
+            final ArrayList<ShowTime> sts = mResult.getNextShowtimesByMovieId(movie.id_g);
 
             ShowTime bst = sts.get(0);
             if (movie.mBestNextShowtime != null)
                 bst = movie.mBestNextShowtime;
-
-            vh.mOtherShowTimesLayout.setVisibility(View.GONE);
 
             for (int i = 1; i < sts.size(); i++) {
                 ShowTime s = sts.get(i);
@@ -233,33 +241,30 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 tv.setTextColor(Color.WHITE);
                 tv.setTextSize(14.0f);
                 tv.setPadding(5, 5, 5, 5);
-                tv.setText("" + ApplicationUtils.getTimeString(s.mTimeRemaining) + " " + mResult.mTheaters.get(s.mTheaterId).mName);
+                tv.setText("OLOLOL" + ApplicationUtils.getTimeString(s.mTimeRemaining) + " " + mResult.mTheaters.get(s.mTheaterId).mName);
                 vh.mOtherShowTimesLayout.addView(tv);
-                vh.mOtherShowTimesLayout.requestLayout();
             }
+
+            vh.mOtherShowTimesLayout.setVisibility(View.GONE);
 
             vh.mTimeRemaining.setText("" + ApplicationUtils.getTimeString(bst.mTimeRemaining));
             vh.mMovieTitle.setText(mResult.mMovies.get(bst.mMovieId).title);
             vh.mTheaterName.setText(mResult.mTheaters.get(bst.mTheaterId).mName);
 
-            final WeakReference<View> convertViewRef = new WeakReference<View>(convertView);
-
             vh.showOtherShowTimesButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (convertViewRef != null && convertViewRef.get() != null) {
-                        if (((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.getVisibility() == View.VISIBLE) {
-                            ((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.setVisibility(View.GONE);
-                        } else {
-                            ((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.setVisibility(View.VISIBLE);
-                        }
-                        //((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.getParent().requestLayout();
-                        ((ViewGroup)((ViewHolder)convertViewRef.get().getTag()).mOtherShowTimesLayout.getParent()).invalidate();
-                    }
 
+                    Log.d("Clicked : ", "" + ((ViewHolder)mFeedContainer.getSelectedView().getTag()).mMovieTitle.getText());
+                    if ( mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).getVisibility() == View.GONE) {
+                        mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).setVisibility(View.VISIBLE);
+                    } else {
+                        mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).setVisibility(View.GONE);
+                    }
+                    Log.d("Visibility", "" +  mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).getVisibility());
+                    mFeedContainer.invalidate();
                 }
             });
-
             //Get poster
             if (mResult.mMovies.get(bst.mMovieId).poster_path != null &&
                     !mResult.mMovies.get(bst.mMovieId).poster_path.equals("")) {

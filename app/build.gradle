@@ -29,5 +29,5 @@ dependencies {
     compile 'com.github.kikoso:SwipeableCards:1.0-RELEASE@aar'
     compile 'com.lorentzos.swipecards:library:+@aar'
     compile 'com.github.nirhart:parallaxscroll:1.+'
-    compile files('libs/mapquest-android-sdk-1.0.5.jar')
+    compile 'org.apmem.tools:layouts:1.8@aar'
 }

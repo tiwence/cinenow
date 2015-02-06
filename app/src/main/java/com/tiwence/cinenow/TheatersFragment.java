@@ -13,6 +13,7 @@ import android.support.v7.app.ActionBar;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -94,6 +95,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         super.onResume();
         if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
             ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+            ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
             mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
             filterFragment(mKindIndex);
         }
@@ -244,6 +246,11 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
             }
             return showTimes;
         }
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
     }
 
     /**

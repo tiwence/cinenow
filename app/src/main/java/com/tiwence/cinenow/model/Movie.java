@@ -3,6 +3,7 @@ package com.tiwence.cinenow.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 
 /**
  * Created by temarill on 15/01/2015.
@@ -14,7 +15,6 @@ public class Movie implements Serializable {
     public int id;
     public String imd_id;
     public String title;
-    //public ArrayList<String> genres;
     public String overview;
     public String poster_path;
     public String backdrop_path; //size = 396 ?
@@ -26,7 +26,11 @@ public class Movie implements Serializable {
     public ShowTime mBestNextShowtime;
     public double mBestDistance;
 
+    public ArrayList<Cast> mCasts;
+    public ArrayList<Crew> mCrew;
+
     public boolean isOnDataset;
+    public double mRatio;
 
     public static Comparator<Movie> MovieRatioComparator = new Comparator<Movie>() {
         @Override
@@ -54,12 +58,5 @@ public class Movie implements Serializable {
     };
 
 
-    /**
-     * Used when query
-     */
-    public ArrayList<MovieTheater> mTheathers;
-
-    public double mRatio;
-
-
+    public boolean movieInfosCompleted;
 }

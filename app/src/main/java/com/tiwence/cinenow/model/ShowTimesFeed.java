@@ -59,7 +59,9 @@ public class ShowTimesFeed implements Serializable {
                 } else {
                     ArrayList<ShowTime> sts = new ArrayList<>();
                     sts.add(st);
-                    dataset.put(this.mTheaters.get(st.mTheaterId), sts);
+                    if (this.mTheaters.get(st.mTheaterId) != null) {
+                        dataset.put(this.mTheaters.get(st.mTheaterId), sts);
+                    }
                 }
             }
         }

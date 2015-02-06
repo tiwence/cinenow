@@ -4,7 +4,8 @@
     android:layout_height="match_parent"
     android:layout_gravity="center_horizontal"
     android:background="@android:color/white"
-    android:id="@+id/relativeLayout">
+    android:id="@+id/relativeLayout"
+    android:clipChildren="false">
 
     <View
         android:id="@+id/item_swipe_left_indicator"
@@ -38,7 +39,8 @@
         android:layout_alignParentBottom="true"
         android:padding="10dip"
         android:id="@+id/dragingLayout"
-        android:background="@color/feed_infos_background">
+        android:background="@color/feed_infos_background"
+        android:clipChildren="false">
 
         <TextView
             android:layout_width="wrap_content"
@@ -89,8 +91,9 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_below="@+id/showtimeTheaterTextView"
-            android:id="@+id/otherShowTimesLayout"
-            android:visibility="visible"/>
+            android:id="@+id/movieShowTimesLayout"
+            android:clipChildren="false"
+            android:visibility="gone"/>
 
     </RelativeLayout>
 

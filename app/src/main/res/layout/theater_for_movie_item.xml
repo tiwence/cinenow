@@ -2,27 +2,28 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="5dip">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="UGC Ciné Cité"
         android:id="@+id/theaterNameForMovieText"
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
         android:padding="5dip"
+        android:layout_alignParentStart="true"
         android:maxLines="1"
         android:textStyle="bold" />
 
-    <LinearLayout
+    <org.apmem.tools.layouts.FlowLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="5dip"
         android:background="#11000000"
         android:id="@+id/showtimesForMovieLayout"
-        android:orientation="horizontal"></LinearLayout>
+        android:orientation="horizontal"></org.apmem.tools.layouts.FlowLayout>
 
 </LinearLayout>

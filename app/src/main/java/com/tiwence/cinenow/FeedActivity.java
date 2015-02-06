@@ -1,6 +1,8 @@
 package com.tiwence.cinenow;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -29,6 +31,7 @@ import android.widget.Toast;
 
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
@@ -85,7 +88,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             String queryName = mEditSearch.getText().toString()
                     .toLowerCase(Locale.getDefault()).trim();
 
-            if (queryName.length() > 3) {
+            if (queryName.length() > 2) {
                 if (mLocation != null) {
                     ApiUtils.instance().retrieveQueryInfo(mLocation, queryName, FeedActivity.this);
                 } else {
@@ -164,27 +167,33 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
+        int itemId = item.getItemId();
+        switch (itemId) {
+            case android.R.id.home:
+                if (mTheatersFragment != null && mTheatersFragment.isVisible())
+                    mTheatersFragment.getActivity().getSupportFragmentManager().popBackStack();
+                break;
+            case R.id.action_settings:
+                return true;
+            case R.id.action_refresh:
+                refresh();
+                break;
+            case R.id.action_theaters:
+                mTheatersFragment = new TheatersFragment();
+                Bundle b = new Bundle();
+                b.putSerializable("result", mResult);
+                b.putSerializable("kindIndex", mActionBar.getSelectedNavigationIndex());
+                mTheatersFragment.setArguments(b);
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        } else if (id == R.id.action_refresh) {
-            refresh();
-        } else if (id == R.id.action_theaters) {
-            mTheatersFragment = new TheatersFragment();
-            Bundle b = new Bundle();
-            b.putSerializable("result", mResult);
-            b.putSerializable("kindIndex", mActionBar.getSelectedNavigationIndex());
-            mTheatersFragment.setArguments(b);
-
-            getSupportFragmentManager().beginTransaction()
-                    .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                            android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                    .replace(R.id.mainContainer, mTheatersFragment)
-                    .addToBackStack(null)
-                    .commit();
-
+                getSupportFragmentManager().beginTransaction()
+                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                        .replace(R.id.mainContainer, mTheatersFragment)
+                        .addToBackStack(null)
+                        .commit();
+                break;
+            default:
+                break;
         }
 
         return super.onOptionsItemSelected(item);
@@ -208,31 +217,28 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         }
     }
 
-    /*public void refreshTheatersFragment() {
-        if (mTheatersFragment != null && mTheatersFragment.isVisible()) {
-            mTheatersFragment.requestData(mLocation);
-        }
-    }*/
-
     /**
      * Get provider name.
      *
      * @return Name of best suiting provider.
      */
     private String getProviderName() {
-        Criteria criteria = new Criteria();
-        criteria.setPowerRequirement(Criteria.POWER_LOW); // Chose your desired power consumption level.
-        criteria.setAccuracy(Criteria.ACCURACY_COARSE); // Choose your accuracy requirement.
-        criteria.setSpeedRequired(true); // Chose if speed for first location fix is required.
-        criteria.setAltitudeRequired(false); // Choose if you use altitude.
-        criteria.setBearingRequired(false); // Choose if you use bearing.
-        criteria.setCostAllowed(false); // Choose if this provider can waste money :-)
+        Criteria c = new Criteria();
+        c.setAccuracy(Criteria.ACCURACY_COARSE);
+        c.setAltitudeRequired(false);
+        c.setBearingRequired(false);
+        c.setSpeedRequired(false);
+        c.setCostAllowed(true);
+        c.setPowerRequirement(Criteria.POWER_HIGH);
 
-        // Provide your criteria and flag enabledOnly that tells
-        // LocationManager only to return active providers.
-        return mLocationManager.getBestProvider(criteria, true);
+        String provider = mLocationManager.getBestProvider(c, true);
+        Log.d("PROVIDER", provider);
+        return provider;
     }
 
+    /**
+     *
+     */
     private void requestData() {
         ApiUtils.instance().retrieveMovieShowTimeTheaters(this, mLocation, new OnRetrieveShowTimesCompleted() {
             @Override
@@ -240,7 +246,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 mResult = result;
                 ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
                 updateFilters();
-
                 if (mMoviesFeedFragment != null)
                     mMoviesFeedFragment.updateDataList(mResult);
                 if (mTheatersFragment != null)
@@ -277,9 +282,11 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         });
     }
 
+    /**
+     *
+     */
     private void displayMoviesFeed() {
         setContentView(R.layout.activity_main);
-
         mMoviesFeedFragment = new MoviesFeedFragment();
         Bundle b = new Bundle();
         b.putSerializable("result", mResult);
@@ -289,6 +296,9 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 .commit();
     }
 
+    /**
+     *
+     */
     private void updateFilters() {
         mActionBar.setDisplayShowTitleEnabled(false);
         mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
@@ -351,15 +361,10 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     }
 
     @Override
-    public void onRetrieveQueryMovieCompleted(Movie movie) {
-        if (movie != null) {
-            Log.d("Movie query completed", movie.title + ", " + movie.id_g);
-
-            List<Object> m = new ArrayList<>();
-            m.add(movie);
-
-            SearchResultsAdapter searchedAppsAdapter = new SearchResultsAdapter(
-                    getApplicationContext(), R.layout.spinner_search_item, m);
+    public void onRetrieveQueryCompleted(List<Object> dataset) {
+        if (dataset != null && dataset.size() > 0) {
+            SearchResultAdapter searchedAppsAdapter = new SearchResultAdapter(
+                    getApplicationContext(), R.layout.spinner_search_item, dataset);
             mEditSearch.setAdapter(searchedAppsAdapter);
             mEditSearch.showDropDown();
             /*mEditSearch.setOnItemClickListener(new OnItemClickListener() {
@@ -387,11 +392,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     }
 
     @Override
-    public void onRetrieveQueryTheaterCompleted(MovieTheater theater) {
-
-    }
-
-    @Override
     public void onRetrieveQueryError(String errorMessage) {
 
     }
@@ -411,7 +411,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         if (mMoviesFeedFragment != null) {
             mMoviesFeedFragment.filterFragment(kindIndex);
         }
-
         if (mTheatersFragment != null) {
             mTheatersFragment.filterFragment(kindIndex);
         }
@@ -425,72 +424,19 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         refreshLocation();
     }
 
+    /**
+     *
+     * @return
+     */
     public ActionBar getMActionBar() {
         return mActionBar;
     }
 
     /**
      *
+     * @return
      */
-    public class SearchResultsAdapter extends ArrayAdapter<Object> {
-
-        private Context mContext;
-        private List<Object> dataset;
-
-        public SearchResultsAdapter(Context context, int resource, List<Object> objects) {
-            super(context, resource, objects);
-            mContext = context;
-            dataset = objects;
-        }
-
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            ViewHolder vh = null;
-            if (convertView == null) {
-                convertView = LayoutInflater.from(mContext).inflate(R.layout.spinner_search_item, null);
-                vh = new ViewHolder();
-                vh.searchImage = (ImageView) convertView.findViewById(R.id.spinnerSearchImage);
-                vh.searchName = (TextView) convertView.findViewById(R.id.spinnerSearchName);
-                vh.searchInfos = (TextView) convertView.findViewById(R.id.spinnerSearchInfos);
-                convertView.setTag(vh);
-            }
-
-            vh = (ViewHolder) convertView.getTag();
-
-            Object data = getItem(position);
-            if (data instanceof Movie) {
-                vh.searchName.setText(((Movie)data).title);
-                vh.searchInfos.setText(((Movie)data).infos_g);
-                if (((Movie)data).poster_path != null) {
-                    Picasso.with(mContext).load(((Movie)data).poster_path).placeholder(R.drawable.poster_placeholder).into(vh.searchImage);
-                } else {
-                    final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.searchImage);
-
-                    ApiUtils.instance().retrieveMovieInfo((Movie)data, new OnRetrieveMovieInfoCompleted() {
-                        @Override
-                        public void onRetrieveMovieInfoCompleted(Movie movie) {
-                            if (imgViewRef != null && imgViewRef.get() != null)
-                                Picasso.with(mContext).load(movie.poster_path).placeholder(R.drawable.poster_placeholder).into(imgViewRef.get());
-                        }
-
-                        @Override
-                        public void onRetrieveMovieError(String message) {
-
-                        }
-                    });
-                }
-            } else if (data instanceof MovieTheater) {
-
-            }
-
-            return convertView;
-        }
-
-        class ViewHolder {
-            ImageView searchImage;
-            TextView searchName;
-            TextView searchInfos;
-        }
+    public Location getLocation() {
+        return mLocation;
     }
 }

@@ -1,18 +1,20 @@
 package com.tiwence.cinenow.utils;
 
 import android.content.Context;
-import android.location.Address;
 import android.location.Location;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.mapquest.android.Geocoder;
-import com.tiwence.cinenow.R;
+import com.tiwence.cinenow.MovieFragment;
+import com.tiwence.cinenow.listener.OnRetrieveMovieCreditsCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveMovieMoreInfosCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
+import com.tiwence.cinenow.model.Cast;
+import com.tiwence.cinenow.model.Crew;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTime;
@@ -32,7 +34,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -45,6 +46,7 @@ public class ApiUtils {
     public static final String MOVIE_DB_API_KEY = "1a9b19642b2c7882115d38072489d252";
     public static final String MAPQUEST_API_KEY = "Fmjtd%7Cluu8290y2d%2Cr5%3Do5-9470qr";
     public static final String MOVIE_DB_SEARCH_MOVIE_ROOT_URL = "http://api.themoviedb.org/3/search/movie?query=";
+    public static final String MOVIE_DB_MOVIE_ROOT_URL = "http://api.themoviedb.org/3/movie/";
     public static final String MAPQUEST_GEOCODING_ROOT_URL = "http://open.mapquestapi.com/geocoding/v1/address?key=" + MAPQUEST_API_KEY + "&location=";
     public static final String MOVIE_DB_POSTER_ROOT_URL = "https://image.tmdb.org/t/p/w396";
     public static final String URL_API_MOVIE_THEATERS = "http://www.google.fr/movies?near=";
@@ -188,9 +190,10 @@ public class ApiUtils {
 
                     }
 
+                    Log.d("THEATER GET", movieTheater.mId + ", " + movieTheater.mName);
+
                     //Getting movies according to the theater
                     Elements movieDivs = theaterDiv.getElementsByClass("movie");
-
                     for (Element movieDiv : movieDivs) {
                         Movie movie = null;
                         String[] movieUrlSplit = movieDiv.getElementsByClass("name").get(0).getElementsByTag("a").attr("href").split("mid=");
@@ -199,7 +202,6 @@ public class ApiUtils {
                         if (moviesCached != null && moviesCached.containsKey(idG)) {
                             movie = moviesCached.get(idG);
                             movie.isOnDataset = true;
-                            movie.mFirstTimeRemaining = -1;
                         } else {
                             movie = new Movie();
                             movie.id_g = idG;
@@ -208,10 +210,10 @@ public class ApiUtils {
                             movie.infos_g = movieDiv.getElementsByClass("info").get(0).text();
                             if (movieDiv.getElementsByClass("info").get(0).text().split(" - ").length > 2)
                                 movie.kind = movieDiv.getElementsByClass("info").get(0).text().split(" - ")[2].trim();
-                            movie.mFirstTimeRemaining = -1;
                         }
+                        movie.mFirstTimeRemaining = -1;
 
-                        //Loop on showtimes feed by Google
+                        //Loop on showtimes according to the movie and the theater
                         Element timeDiv = movieDiv.getElementsByClass("times").get(0);
 
                         for (Element timeSpan : timeDiv.getElementsByTag("span")) {
@@ -224,7 +226,6 @@ public class ApiUtils {
                                 }
                                 int timeRemaining = ApplicationUtils.getTimeRemaining(showTime);
 
-                                //showTimes.add(timeSpan.text());
                                 ShowTime st = new ShowTime();
                                 st.mMovieId = movie.id_g;
                                 st.mTheaterId = movieTheater.mId;
@@ -234,13 +235,13 @@ public class ApiUtils {
                                 if (timeRemaining > 0 && timeRemaining < 95) {
                                     showTimeNb++;
                                     nextShowtimes.add(st);
-
                                     if (!nextMovies.containsKey(st.mMovieId)) {
                                         nextMovies.put(movie.id_g, movie);
                                     }
                                 }
                             }
                         }
+                        //We sort showtimes by their time remaining
                         Collections.sort(showTimes, ShowTime.ShowTimeComparator);
                         Collections.sort(nextShowtimes, ShowTime.ShowTimeComparator);
                         if (!movies.containsKey(movie.id_g)) {
@@ -262,6 +263,10 @@ public class ApiUtils {
         return result;
     }
 
+    /**
+     *
+     * @param result
+     */
     private void calculateRatioAndNextTimeRemaining(ShowTimesFeed result) {
         for (Movie m : result.mNextMovies) {
             ArrayList<ShowTime> sts = result.getNextShowtimesByMovieId(m.id_g);
@@ -296,12 +301,17 @@ public class ApiUtils {
         }
     }
 
+    /**
+     *
+     * @param movie
+     * @param listener
+     */
     public void retrieveMovieInfo(final Movie movie, final OnRetrieveMovieInfoCompleted listener) {
         new AsyncTask<Void, Void, Movie>() {
             @Override
             protected Movie doInBackground(Void... params) {
 
-                String query = Uri.encode(movie.title.replaceAll("\\s", "+"));
+                String query = Uri.encode(movie.title.replaceAll("\\s", "+").replaceAll("3D", ""));
                 String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
                 String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
                 try {
@@ -347,8 +357,8 @@ public class ApiUtils {
                     Map.Entry mapEntry = (Map.Entry) it.next();
                     Movie movie = (Movie) mapEntry.getValue();
                     if (movie.id == 0) {
-                        String query = Uri.encode(movie.title).replaceAll("\\s", "+");
-                        String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr&year=";
+                        String query = Uri.encode(movie.title).replaceAll("\\s", "+").replaceAll("3D", "");
+                        String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
                         Log.d("Movie infos", searchMoVieUrl);
                         String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
                         try {
@@ -396,10 +406,10 @@ public class ApiUtils {
      * @param listener
      */
     public void retrieveQueryInfo(final Location location,  final String queryName, final OnRetrieveQueryCompleted listener) {
-        new AsyncTask<Void, Void, Object>() {
+        new AsyncTask<Void, Void, List<Object>>() {
 
             @Override
-            protected Object doInBackground(Void... params) {
+            protected List<Object> doInBackground(Void... params) {
                 if (queryName.trim().length() > 0) {
                     Document doc = null;
 
@@ -419,14 +429,10 @@ public class ApiUtils {
             }
 
             @Override
-            protected void onPostExecute(Object result) {
+            protected void onPostExecute(List<Object> result) {
                 super.onPostExecute(result);
                 if (result != null) {
-                    if (result instanceof MovieTheater) {
-                        listener.onRetrieveQueryTheaterCompleted((MovieTheater) result);
-                    } else if (result instanceof  Movie) {
-                        listener.onRetrieveQueryMovieCompleted((Movie) result);
-                    }
+                    listener.onRetrieveQueryCompleted(result);
                 } else {
                     listener.onRetrieveQueryError("Error");
                 }
@@ -439,55 +445,167 @@ public class ApiUtils {
      * @param doc
      * @return
      */
-    private Object createMovieOrTheater(Document doc) {
-
+    private List<Object> createMovieOrTheater(Document doc) {
+        List<Object> data = null;
         if (doc.getElementsByClass("movie_results") != null
-                && doc.getElementsByClass("movie_results").size() > 0) {
-            Element content = doc.getElementsByClass("movie_results").get(0);
+                && doc.getElementsByClass("movie_results").size() > 0) { //movies or theaters fetched
 
-            if (content.getAllElements().get(0).getElementsByClass("movie") != null) {
-                Element movieContent = content.getElementsByClass("movie").get(0);
-                Movie movie = new Movie();
+            Element result = doc.getElementsByClass("movie_results").get(0);
+            String className = result.child(0).className();
+            Elements moviesElement = result.getElementsByClass("movie");
+            Elements theatersElement = result.getElementsByClass("theater");
 
-                Element leftSection = doc.getElementsByClass("section").get(0);
-                if (leftSection.getElementsByAttributeValue("name", "mid") != null
-                        && leftSection.getElementsByAttributeValue("name", "mid").size() > 0) {
-                    movie.id_g = leftSection.getElementsByAttributeValue("name", "mid").get(0).attr("value");
-                    movie.title = movieContent.getElementsByTag("h2").get(0).text();
-                    movie.infos_g = movieContent.getElementsByClass("info").get(0).text();
-                    movie.overview = movieContent.getElementsByClass("syn").get(0).text();
-                } else {
-                    return null;
-                }
+            if (className.equals("movie")) {
+                for (Element movieElement : moviesElement) {
+                    if (movieElement != null && movieElement.getElementsByTag("h2") != null
+                            && movieElement.getElementsByTag("h2").size() > 0) {
+                        Movie movie = new Movie();
 
-                /*if (movieContent.getElementsByClass("showtimes") != null
-                        && movieContent.getElementsByClass("showtimes").get(0).getElementsByClass("theater") != null
-                        && movieContent.getElementsByClass("showtimes").get(0).getElementsByClass("theater").size() > 0) {
+                        movie.title = movieElement.getElementsByTag("h2").get(0).text();
+                        movie.infos_g = movieElement.getElementsByClass("info").get(0).text();
+                        movie.overview = movieElement.getElementsByClass("syn").get(0).text();
 
-                    for (Element showtimeElement : movieContent.getElementsByClass("showtimes").get(0).getElementsByClass("theater")) {
-                        MovieTheater theater = new MovieTheater();
-                        theater.mName = showtimeElement.getElementsByClass("name").get(0).text();
-                        theater.mAddress = showtimeElement.getElementsByClass("address").get(0).text();
+                        Log.d("PARSE QUERY RESULT", "Movie : " + movie.title);
 
-                        if (showtimeElement.getElementsByClass("times") != null
-                                && showtimeElement.getElementsByClass("name").size() > 0) {
-                            theater.mShowTimes = new ArrayList<ShowTime>();
-                            for (Element timeElement : showtimeElement.getElementsByClass("name").get(0).getElementsByTag("span")) {
-                                ShowTime showTime = new ShowTime();
-                                showTime.mShowTimeStr = timeElement.text().replaceAll("\\s", "");
-                                showTime.mTimeRemaining = ApplicationUtils.getTimeRemaining(showTime.mShowTimeStr);
-                                theater.mShowTimes.add(showTime);
+                        if (doc.getElementsByClass("movie_results").get(0).getElementsByClass("movie").size() > 1) { //we got id in the href element
+                            String movieLink = movieElement.getElementsByTag("a").get(0).attr("href");
+                            movie.id_g = movieLink.split("mid=")[movieLink.split("mid=").length - 1];
+                        } else { //we got id in the left section...
+                            Element leftSection = doc.getElementsByClass("section").get(0);
+                            if (leftSection.getElementsByAttributeValue("name", "mid") != null
+                                    && leftSection.getElementsByAttributeValue("name", "mid").size() > 0) {
+                                movie.id_g = leftSection.getElementsByAttributeValue("name", "mid").get(0).attr("value");
                             }
                         }
+                        //if (movie.id_g != null && !movie.id_g.equals("")) {
+                            if (data == null) data = new ArrayList<>();
+                                data.add(movie);
+                        //}
                     }
-                }*/
-                return movie;
-            } else if (content.getAllElements().get(0).getElementsByClass("theater") != null) {
+                }
+            } else if (className.equals("theater")) {
+                for (Element theaterElement : theatersElement) {
+                    if (theaterElement != null) {
+                        MovieTheater movieTheater = new MovieTheater();
+                        String movieLink = theaterElement.getElementsByTag("a").get(0).attr("href");
+                        movieTheater.mId = movieLink.split("tid=")[movieLink.split("tid=").length - 1];
+                        movieTheater.mName = theaterElement.getElementsByTag("h2").get(0).text();
+                        movieTheater.mAddress = theaterElement.getElementsByClass("info").get(0).text();
 
+                        Log.d("PARSE QUERY RESULT", "Theater : " + movieTheater.mName);
+
+                        if (movieTheater.mId != null && !movieTheater.mId.equals("")) {
+                            if (data == null) data = new ArrayList<>();
+                            data.add(movieTheater);
+                        }
+                    }
+                }
             }
-
         }
 
-        return null;
+        return data;
     }
+
+    /**
+     *
+     * @param movie
+     * @param listener
+     */
+    public void retrieveMoreMovieInfos(final Movie movie, final OnRetrieveMovieMoreInfosCompleted listener) {
+        new AsyncTask<Void, Void, Movie>() {
+
+            @Override
+            protected Movie doInBackground(Void... params) {
+
+                String movieUrl = MOVIE_DB_MOVIE_ROOT_URL + movie.id + "?api_key=" + MOVIE_DB_API_KEY + "&language=fr";
+                Log.d("Movie infos", movieUrl);
+                String movieJSONString = HttpUtils.httpGet(movieUrl);
+                try {
+                    JSONObject movieJSON = new JSONObject(movieJSONString);
+                    movie.release_date = movieJSON.optString("release_date");
+                    movie.overview = movieJSON.optString("overview");
+                    return movie;
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Movie movie) {
+                super.onPostExecute(movie);
+                if (movie != null) {
+                    listener.onRetrieveMovieMoreInfosCompleted(movie);
+                } else {
+                    listener.onRetrieveMovieMoreInfosError("Error");
+                }
+            }
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    public void retrieveMovieCredits(final Movie movie, final OnRetrieveMovieCreditsCompleted listener) {
+        new AsyncTask<Void, Void, Movie>() {
+
+            @Override
+            protected Movie doInBackground(Void... params) {
+
+                String movieUrl = MOVIE_DB_MOVIE_ROOT_URL + movie.id + "/credits?api_key=" + MOVIE_DB_API_KEY + "&language=fr";
+                Log.d("Credits infos", movieUrl);
+                String creditsJSONString = HttpUtils.httpGet(movieUrl);
+                try {
+                    JSONObject creditsJSON = new JSONObject(creditsJSONString);
+                    JSONArray castJSONArray = creditsJSON.optJSONArray("cast");
+                    //Getting cast member
+                    for (int i = 0; i < castJSONArray.length(); i++) {
+                        JSONObject castJSON = castJSONArray.optJSONObject(i);
+                        if (castJSON != null) {
+                            if (movie.mCasts == null) movie.mCasts = new ArrayList<Cast>();
+                            Cast cast = new Cast();
+                            cast.character = castJSON.optString("character");
+                            cast.credit_id = castJSON.optString("credit_id");
+                            cast.id = castJSON.optInt("id");
+                            cast.name = castJSON.optString("name");
+                            cast.order = castJSON.optInt("order");
+                            cast.profile_path = castJSON.optString("profile_path");
+                            movie.mCasts.add(cast);
+                        }
+                    }
+                    JSONArray crewJSONArray = creditsJSON.optJSONArray("crew");
+                    //Getting crew member
+                    for (int i = 0; i < crewJSONArray.length(); i++) {
+                        JSONObject crewJSON = crewJSONArray.optJSONObject(i);
+                        if (crewJSON != null) {
+                            if (movie.mCrew == null) movie.mCrew = new ArrayList<Crew>();
+                            Crew crew = new Crew();
+                            crew.job = crewJSON.optString("job");
+                            crew.credit_id = crewJSON.optString("credit_id");
+                            crew.id = crewJSON.optInt("id");
+                            crew.name = crewJSON.optString("name");
+                            crew.department = crewJSON.optString("department");
+                            crew.profile_path = crewJSON.optString("profile_path");
+                            movie.mCrew.add(crew);
+                        }
+                    }
+                    if (movie.mCasts != null || movie.mCrew != null) {
+                        movie.movieInfosCompleted = true;
+                    }
+                    return movie;
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Movie movie) {
+                super.onPostExecute(movie);
+                if (movie != null) {
+                    listener.onRetrieveMovieCreditsCompleted(movie);
+                } else {
+                    listener.onRetrieveMovieCreditsError("Error");
+                }
+            }
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
 }
