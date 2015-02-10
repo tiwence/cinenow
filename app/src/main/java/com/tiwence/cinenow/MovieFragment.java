@@ -7,6 +7,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.text.Editable;
+import android.text.Html;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -22,8 +23,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
+import com.tiwence.cinenow.adapter.SearchResultAdapter;
 import com.tiwence.cinenow.listener.OnRetrieveMovieCreditsCompleted;
-import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieMoreInfosCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 import com.tiwence.cinenow.model.Cast;
@@ -35,11 +36,7 @@ import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
 
-import org.w3c.dom.Text;
-
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -58,6 +55,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     private Movie mCurrentMovie;
     private ShowTimesFeed mResult;
     private LinkedHashMap<String, Movie> mCachedMovies;
+    private ArrayList<ShowTime> mNextShowTimes;
     private TextView mMovieOverview;
     private TextView mMovieAverageView;
     private AutoCompleteTextView mEditSearch;
@@ -99,10 +97,14 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_movie, container, false);
         mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
-        mCurrentMovie = getResult().mMovies.get(getArguments().getString("movie_id"));
+
+        if (getArguments().getString("movie_id") != null) {
+            mCurrentMovie = getResult().mMovies.get(getArguments().getString("movie_id"));
+        } else if (getArguments().getSerializable("movie") != null){
+            mCurrentMovie = (Movie)getArguments().getSerializable("movie");
+        }
 
         mLocation = ((FeedActivity)getActivity()).getLocation();
-
         configureView();
         requestMovieInfos();
 
@@ -156,7 +158,32 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
             Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(mBackdropView);
         }
 
+        displayNextShowTimes();
         displayShowTimes();
+    }
+
+    /**
+     *
+     */
+    private void displayNextShowTimes() {
+        mNextShowTimes = getResult().getNextShowtimesByMovieId(mCurrentMovie.id_g);
+        LinearLayout nextShowTimesLayout = (LinearLayout) mRootView.findViewById(R.id.nextShowTimesLayout);
+        if (mNextShowTimes != null) {
+            for (int i = 0; i < mNextShowTimes.size(); i++) {
+                ShowTime s = mNextShowTimes.get(i);
+                TextView tv = new TextView(getActivity());
+                tv.setTextColor(getActivity().getResources().getColor(android.R.color.darker_gray));
+                tv.setTextSize(14.0f);
+                if (i == 0) {
+                    tv.setPadding(5, 0, 5, 5);
+                } else {
+                    tv.setPadding(5, 5, 5, 5);
+                }
+                tv.setText(Html.fromHtml(ApplicationUtils.getTimeString(s.mTimeRemaining)
+                        + " <strong>" + getResult().mTheaters.get(s.mTheaterId).mName + "</strong>"));
+                nextShowTimesLayout.addView(tv);
+            }
+        }
     }
 
     /**

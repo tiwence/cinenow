@@ -1,5 +1,7 @@
 package com.tiwence.cinenow.model;
 
+import com.tiwence.cinenow.utils.ApplicationUtils;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -19,8 +21,10 @@ public class ShowTimesFeed implements Serializable {
     public ArrayList<ShowTime> getNextShowtimesByMovieId(String movieId) {
         ArrayList<ShowTime> showTimes = null;
         for (ShowTime st : mNextShowTimes) {
-            if (st.mMovieId.equals(movieId)) {
+            int timeRemaining = ApplicationUtils.getTimeRemaining(st.mShowTimeStr);
+            if (timeRemaining > 0 && st.mMovieId.equals(movieId)) {
                 if (showTimes == null) showTimes = new ArrayList<ShowTime>();
+                st.mTimeRemaining = timeRemaining;
                 showTimes.add(st);
             }
         }

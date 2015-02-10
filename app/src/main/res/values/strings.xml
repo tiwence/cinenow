@@ -12,5 +12,7 @@
     <string name="action_kind">Kinds</string>
     <string name="all">Tous</string>
     <string name="action_theaters">Theaters</string>
+    <string name="header_next_showtimes">Prochaines séances</string>
+    <string name="header_all_showtimes">Toutes les séances à proximité</string>
 
 </resources>

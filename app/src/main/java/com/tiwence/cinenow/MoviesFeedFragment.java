@@ -40,6 +40,7 @@ import org.w3c.dom.Text;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -83,7 +84,6 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         //Adding feed view
         mResult = result;
         if (this.mResult.mNextMovies != null && this.mResult.mNextMovies.size() > 0) {
-            Log.d("Feeds", "UPDATE DATA LIST");
             //ActionBar spinner adapter
             mNextMovies = new ArrayList<>(this.mResult.mNextMovies);
             Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
@@ -197,12 +197,14 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             view.findViewById(R.id.item_swipe_left_indicator).setAlpha(scrollProgressPercent > 0 ? scrollProgressPercent : 0);
     }
 
+
     /**
      *
      */
     public class MoviesAdapter extends ArrayAdapter<Movie> {
 
         private Context mContext;
+        private MoviesFeedFragment mFeedFragment;
 
         public MoviesAdapter(Context context, int resource, List<Movie> objects) {
             super(context, resource, objects);
@@ -255,13 +257,13 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 @Override
                 public void onClick(View v) {
 
-                    Log.d("Clicked : ", "" + ((ViewHolder)mFeedContainer.getSelectedView().getTag()).mMovieTitle.getText());
-                    if ( mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).getVisibility() == View.GONE) {
+                    Log.d("Clicked : ", "" + ((ViewHolder) mFeedContainer.getSelectedView().getTag()).mMovieTitle.getText());
+                    if (mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).getVisibility() == View.GONE) {
                         mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).setVisibility(View.VISIBLE);
                     } else {
                         mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).setVisibility(View.GONE);
                     }
-                    Log.d("Visibility", "" +  mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).getVisibility());
+                    Log.d("Visibility", "" + mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).getVisibility());
                     mFeedContainer.invalidate();
                 }
             });
@@ -305,6 +307,4 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             ImageButton showOtherShowTimesButton;
         }
     }
-
-
 }

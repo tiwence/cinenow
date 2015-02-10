@@ -23,6 +23,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
+import com.tiwence.cinenow.adapter.ShowtimeAdapter;
+import com.tiwence.cinenow.adapter.TheaterAdapter;
 import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
@@ -83,7 +85,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         return rootView;
     }
 
-    private ShowTimesFeed getResults() {
+    public ShowTimesFeed getResults() {
         if (getActivity() != null)
             return ((FeedActivity)getActivity()).getResults();
         else
@@ -122,7 +124,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         filterTheaters();
         Collections.sort(mTheaters, MovieTheater.MovieTheatersDistanceComparator);
         if (getActivity() != null) {
-            mTheaterAdapter = new TheaterAdapter(mTheaters);
+            mTheaterAdapter = new TheaterAdapter(TheatersFragment.this, mTheaters);
             mListView.setAdapter(mTheaterAdapter);
             mSwipeRefresh.setRefreshing(false);
         }
@@ -154,77 +156,8 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         }
     }
 
-    /**
-     *
-     */
-    public class TheaterAdapter extends BaseAdapter {
-
-        ArrayList<MovieTheater> mTheaters;
-        LayoutInflater mInflater;
-
-        public TheaterAdapter(ArrayList<MovieTheater> theaters) {
-            this.mTheaters = theaters;
-            this.mInflater = LayoutInflater.from(getActivity());
-        }
-
-        @Override
-        public int getCount() {
-            if (mTheaters != null)
-                return mTheaters.size();
-            return 0;
-        }
-
-        @Override
-        public Object getItem(int position) {
-            if (mTheaters != null)
-                return mTheaters.get(position);
-            return null;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return this.getItem(position).hashCode();
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            ViewHolder vh = null;
-            if (convertView == null) {
-                convertView = mInflater.inflate(R.layout.theater_item, parent, false);
-                vh = new ViewHolder();
-                vh.mTheaterName = (TextView) convertView.findViewById(R.id.theaterNameText);
-                vh.mHListView = (HListView) convertView.findViewById(R.id.hListView);
-                convertView.setTag(vh);
-            }
-            vh = (ViewHolder) convertView.getTag();
-            final MovieTheater mt = mTheaters.get(position);
-            vh.mTheaterName.setText(mt.mName);
-
-            vh.mHListView.setAdapter(new ShowtimeAdapter(filteredShowTime(getResults().getNextShowTimesByTheaterId(mt.mId))));
-            vh.mHListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                    ShowTime st = filteredShowTime(getResults().getNextShowTimesByTheaterId(mt.mId)).get(i);
-                    MovieFragment mf = new MovieFragment();
-                    Bundle b = new Bundle();
-                    b.putString("movie_id", st.mMovieId);
-                    mf.setArguments(b);
-                    getActivity().getSupportFragmentManager().beginTransaction()
-                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, mf)
-                            .addToBackStack(null)
-                            .commit();
-                }
-            });
-
-            return convertView;
-        }
-
-        public class ViewHolder {
-            TextView mTheaterName;
-            HListView mHListView;
-        }
+    public  LinkedHashMap<String, Movie> getCachedMovies() {
+        return mCachedMovies;
     }
 
     /**
@@ -232,7 +165,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
      * @param nextShowTimesByTheaterId
      * @return
      */
-    private ArrayList<ShowTime> filteredShowTime(ArrayList<ShowTime> nextShowTimesByTheaterId) {
+    public ArrayList<ShowTime> filteredShowTime(ArrayList<ShowTime> nextShowTimesByTheaterId) {
         if (mKindIndex == 0)
             return nextShowTimesByTheaterId;
         else {
@@ -251,92 +184,6 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
-    }
-
-    /**
-     *
-     */
-    public class ShowtimeAdapter extends BaseAdapter {
-
-        private ArrayList<ShowTime> mShowTimes;
-        private LayoutInflater mInflater;
-
-        public ShowtimeAdapter(ArrayList<ShowTime> showTimes) {
-            this.mShowTimes = showTimes;
-            this.mInflater = LayoutInflater.from(getActivity());
-        }
-
-        @Override
-        public int getCount() {
-            if (mShowTimes != null)
-                return mShowTimes.size();
-            return 0;
-        }
-
-        @Override
-        public Object getItem(int position) {
-            if (mShowTimes != null)
-                return mShowTimes.get(position);
-            return null;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return this.getItem(position).hashCode();
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            ViewHolder vh = null;
-            if (convertView == null) {
-                convertView = mInflater.inflate(R.layout.movie_item, parent, false);
-                vh = new ViewHolder();
-                vh.mTimeRemaining = (TextView) convertView.findViewById(R.id.movieTimeRemainingText);
-                vh.mPoster = (ImageView) convertView.findViewById(R.id.moviePosterView);
-                vh.mMovieTitle = (TextView) convertView.findViewById(R.id.movieTitleText);
-                convertView.setTag(vh);
-            }
-
-            vh = (ViewHolder) convertView.getTag();
-            vh.mTimeRemaining.setText(ApplicationUtils.getTimeString(mShowTimes.get(position).mTimeRemaining));
-            vh.mMovieTitle.setText(getResults().mMovies.get(mShowTimes.get(position).mMovieId).title);
-
-            //Get poster
-            if (getResults().mMovies.get(mShowTimes.get(position).mMovieId).poster_path != null &&
-                    !getResults().mMovies.get(mShowTimes.get(position).mMovieId).poster_path.equals("")) {
-                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + getResults().mMovies.get(mShowTimes.get(position).mMovieId).poster_path;
-                Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
-            } else if (mCachedMovies != null && mCachedMovies.containsKey(mShowTimes.get(position).mMovieId)
-                    && mCachedMovies.get(mShowTimes.get(position).mMovieId).poster_path != null
-                    && !mCachedMovies.get(mShowTimes.get(position).mMovieId).poster_path.equals("")) {
-                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(mShowTimes.get(position).mMovieId).poster_path;
-                Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
-            } else {
-                final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.mPoster);
-                ApiUtils.instance().retrieveMovieInfo(getResults().mMovies.get(mShowTimes.get(position).mMovieId), new OnRetrieveMovieInfoCompleted() {
-                    @Override
-                    public void onRetrieveMovieInfoCompleted(Movie movie) {
-                        String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + movie.poster_path;
-                        if (imgViewRef != null && imgViewRef.get() != null)
-                            Picasso.with(getActivity()).load(posterPath)
-                                    .placeholder(R.drawable.poster_placeholder).into(imgViewRef.get());
-                    }
-
-                    @Override
-                    public void onRetrieveMovieError(String message) {
-
-                    }
-                });
-            }
-
-            return convertView;
-        }
-
-        public class ViewHolder {
-            ImageView mPoster;
-            TextView mMovieTitle;
-            TextView mTimeRemaining;
-        }
     }
 
 }

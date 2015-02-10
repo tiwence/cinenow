@@ -1,8 +1,6 @@
 package com.tiwence.cinenow;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -15,24 +13,18 @@ import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.SpinnerAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
-import com.squareup.picasso.Picasso;
-import com.squareup.picasso.Target;
-import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
+import com.tiwence.cinenow.adapter.SearchResultAdapter;
 import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
@@ -42,9 +34,6 @@ import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
 
-import org.w3c.dom.Text;
-
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -199,6 +188,9 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     *
+     */
     public void refreshLocation() {
         mLocationManager.requestLocationUpdates(getProviderName(), 0, 0, this);
         if (mIsFirstLocation) {
@@ -211,6 +203,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                         requestData();
                         //refreshTheatersFragment();
                         mLocationManager.removeUpdates(FeedActivity.this);
+                    } else if (mLocation == null) {
+                        makeToast(FeedActivity.this, "Unable to detect your location. Please try again later.");
                     }
                 }
             }, REFRESH_LOCATION_TIMEOUT);
@@ -361,33 +355,45 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     }
 
     @Override
-    public void onRetrieveQueryCompleted(List<Object> dataset) {
+    public void onRetrieveQueryCompleted(final List<Object> dataset) {
         if (dataset != null && dataset.size() > 0) {
             SearchResultAdapter searchedAppsAdapter = new SearchResultAdapter(
                     getApplicationContext(), R.layout.spinner_search_item, dataset);
             mEditSearch.setAdapter(searchedAppsAdapter);
             mEditSearch.showDropDown();
-            /*mEditSearch.setOnItemClickListener(new OnItemClickListener() {
 
+            mEditSearch.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
-                public void onItemClick(AdapterView<?> arg0, View arg1,
-                                        int arg2, long arg3) {
-                    if (arg2 < result.size()) {
-                        if (result.get(arg2) != null) {
-                            mEditSearch.setText(result.get(arg2).mName);
-                            Intent i = new Intent(getApplicationContext(),
-                                    AppDetailActivity.class);
-                            i.putExtra("app", result.get(arg2));
-                            startActivity(i);
-                            MainTabsActivity.this
-                                    .overridePendingTransition(
-                                            android.R.anim.slide_in_left,
-                                            android.R.anim.slide_out_right);
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    if (position < dataset.size()) {
+                        if (dataset.get(position) != null) {
+                            if (dataset.get(position) instanceof Movie) {
+                                Movie movie = (Movie) dataset.get(position);
+                                mEditSearch.setText("");
+                                MovieFragment mf = new MovieFragment();
+                                Bundle b = new Bundle();
+                                if (mResult.mMovies.containsKey(movie.id_g)) {
+                                    b.putString("movie_id", movie.id_g);
+                                } else {
+                                    b.putSerializable("movie", movie);
+                                }
+                                mf.setArguments(b);
+                                getSupportFragmentManager().beginTransaction()
+                                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                                        .replace(R.id.mainContainer, mf)
+                                        .addToBackStack(null)
+                                        .commit();
+
+                            } else if (dataset.get(position) instanceof MovieTheater) {
+                                MovieTheater theater = (MovieTheater) dataset.get(position);
+                                mEditSearch.setText(theater.mName);
+                            }
+
                         }
                     }
-
                 }
-            });*/
+            });
         }
     }
 

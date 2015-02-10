@@ -90,13 +90,43 @@
                 android:id="@+id/movieOverviewTextView"
                 android:layout_marginLeft="10dip"
                 android:layout_marginRight="10dip"
-                android:layout_marginBottom="10dip"/>
+                android:layout_marginBottom="10dip" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@android:color/white"
+                android:padding="5dp"
+                android:id="@+id/nextShowTimesHeaderText"
+                android:text="@string/header_next_showtimes"
+                android:layout_marginBottom="10dip"
+                android:background="@android:color/black" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/nextShowTimesLayout"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:orientation="vertical"></LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@android:color/white"
+                android:padding="5dp"
+                android:id="@+id/allShowTimesHeaderText"
+                android:text="@string/header_all_showtimes"
+                android:layout_marginBottom="10dip"
+                android:background="@android:color/black" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/allShowTimesLayout"
-                android:layout_below="@+id/movieOverviewTextView"
                 android:orientation="vertical"></LinearLayout>
 
         </LinearLayout>
