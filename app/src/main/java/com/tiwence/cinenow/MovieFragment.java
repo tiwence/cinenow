@@ -3,6 +3,7 @@ package com.tiwence.cinenow;
 import android.content.Context;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
@@ -17,6 +18,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -25,6 +27,7 @@ import android.widget.TextView;
 import com.squareup.picasso.Picasso;
 import com.tiwence.cinenow.adapter.SearchResultAdapter;
 import com.tiwence.cinenow.listener.OnRetrieveMovieCreditsCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieMoreInfosCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 import com.tiwence.cinenow.model.Cast;
@@ -63,6 +66,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     private LinkedHashMap<MovieTheater, ArrayList<ShowTime>> mShowtimeDataset;
 
     private Location mLocation;
+
     /**
      * Text watcher used to search movies or theaters
      */
@@ -105,8 +109,14 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
         }
 
         mLocation = ((FeedActivity)getActivity()).getLocation();
-        configureView();
-        requestMovieInfos();
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                configureView();
+                requestMovieInfos();
+            }
+        }, 100);
 
         return mRootView;
     }
@@ -172,8 +182,8 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
             for (int i = 0; i < mNextShowTimes.size(); i++) {
                 ShowTime s = mNextShowTimes.get(i);
                 TextView tv = new TextView(getActivity());
-                tv.setTextColor(getActivity().getResources().getColor(android.R.color.darker_gray));
-                tv.setTextSize(14.0f);
+                tv.setTextColor(mMovieOverview.getCurrentTextColor());
+                tv.setTextSize(15.0f);
                 if (i == 0) {
                     tv.setPadding(5, 0, 5, 5);
                 } else {
@@ -215,41 +225,49 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
      */
     private void requestMovieInfos() {
 
-        if (mCurrentMovie.overview == null || mCurrentMovie.overview.equals("")) {
-            ApiUtils.instance().retrieveMoreMovieInfos(mCurrentMovie, new OnRetrieveMovieMoreInfosCompleted() {
+        if (mCurrentMovie.id == 0) {
+            ApiUtils.instance().retrieveMovieInfo(mCurrentMovie, new OnRetrieveMovieInfoCompleted() {
                 @Override
-                public void onRetrieveMovieMoreInfosCompleted(Movie movie) {
+                public void onRetrieveMovieInfoCompleted(Movie movie) {
                     mCurrentMovie = movie;
                     displayMovieInfos();
                     ApplicationUtils.saveDataInCache(getActivity(), getResult().mMovies, ApplicationUtils.MOVIES_FILE_NAME);
                 }
 
                 @Override
-                public void onRetrieveMovieMoreInfosError(String errorMessage) {
-                    Log.e("MovieFragment", errorMessage);
+                public void onRetrieveMovieError(String message) {
+
                 }
             });
         } else {
-            displayMovieInfos();
-        }
-
-        if (mCurrentMovie.movieInfosCompleted) {
-            displayCreditsInfos();
-        } else {
-            ApiUtils.instance().retrieveMovieCredits(mCurrentMovie, new OnRetrieveMovieCreditsCompleted() {
+            ApiUtils.instance().retrieveMoreMovieInfos(mCurrentMovie, new OnRetrieveMovieMoreInfosCompleted() {
                 @Override
-                public void onRetrieveMovieCreditsCompleted(Movie movie) {
+                public void onRetrieveMovieMoreInfosCompleted(Movie movie) {
                     mCurrentMovie = movie;
-                    displayCreditsInfos();
+                    displayMovieInfos();
                     ApplicationUtils.saveDataInCache(getActivity(), getResult().mMovies, ApplicationUtils.MOVIES_FILE_NAME);
-                }
 
+                    ApiUtils.instance().retrieveMovieCredits(mCurrentMovie, new OnRetrieveMovieCreditsCompleted() {
+                        @Override
+                        public void onRetrieveMovieCreditsCompleted(Movie movie) {
+                            mCurrentMovie = movie;
+                            displayCreditsInfos();
+                            ApplicationUtils.saveDataInCache(getActivity(), getResult().mMovies, ApplicationUtils.MOVIES_FILE_NAME);
+                        }
+
+                        @Override
+                        public void onRetrieveMovieCreditsError(String message) {
+                            Log.e("MovieFragment", message);
+                        }
+                    });
+                }
                 @Override
-                public void onRetrieveMovieCreditsError(String message) {
-                    Log.e("MovieFragment", message);
+                public void onRetrieveMovieMoreInfosError(String errorMessage) {
+
                 }
             });
         }
+
     }
 
     /**
@@ -345,34 +363,46 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     }
 
     @Override
-    public void onRetrieveQueryCompleted(List<Object> dataset) {
+    public void onRetrieveQueryCompleted(final List<Object> dataset) {
         if (dataset != null && dataset.size() > 0) {
 
             SearchResultAdapter searchedAppsAdapter = new SearchResultAdapter(
                     getActivity(), R.layout.spinner_search_item, dataset);
             mEditSearch.setAdapter(searchedAppsAdapter);
             mEditSearch.showDropDown();
-            /*mEditSearch.setOnItemClickListener(new OnItemClickListener() {
-
+            mEditSearch.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
-                public void onItemClick(AdapterView<?> arg0, View arg1,
-                                        int arg2, long arg3) {
-                    if (arg2 < result.size()) {
-                        if (result.get(arg2) != null) {
-                            mEditSearch.setText(result.get(arg2).mName);
-                            Intent i = new Intent(getApplicationContext(),
-                                    AppDetailActivity.class);
-                            i.putExtra("app", result.get(arg2));
-                            startActivity(i);
-                            MainTabsActivity.this
-                                    .overridePendingTransition(
-                                            android.R.anim.slide_in_left,
-                                            android.R.anim.slide_out_right);
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    if (position < dataset.size()) {
+                        if (dataset.get(position) != null) {
+                            if (dataset.get(position) instanceof Movie) {
+                                Movie movie = (Movie) dataset.get(position);
+                                if (mCurrentMovie == null || mCurrentMovie.id_g == null || !mCurrentMovie.id_g.equals(movie.id_g)) {
+                                    mEditSearch.setText("");
+                                    MovieFragment mf = new MovieFragment();
+                                    Bundle b = new Bundle();
+                                    if (getResult().mMovies.containsKey(movie.id_g)) {
+                                        b.putString("movie_id", movie.id_g);
+                                    } else {
+                                        b.putSerializable("movie", movie);
+                                    }
+                                    mf.setArguments(b);
+                                    getActivity().getSupportFragmentManager().beginTransaction()
+                                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                                            .replace(R.id.mainContainer, mf)
+                                            .addToBackStack(null)
+                                            .commit();
+                                }
+                            } else if (dataset.get(position) instanceof MovieTheater) {
+                                MovieTheater theater = (MovieTheater) dataset.get(position);
+                                mEditSearch.setText(theater.mName);
+                            }
+
                         }
                     }
-
                 }
-            });*/
+            });
         }
     }
 

@@ -33,6 +33,7 @@ import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
+import com.tiwence.cinenow.utils.SearchLocation;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -48,7 +49,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     private AutoCompleteTextView mEditSearch;
     private SpinnerAdapter mMoviesKindAdapter;
 
-    private LocationManager mLocationManager;
+    //private LocationManager mLocationManager;
     private Location mLocation;
     private boolean mIsFirstLocation = true;
     private boolean mNewLocationFound = false;
@@ -76,7 +77,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         public void afterTextChanged(Editable s) {
             String queryName = mEditSearch.getText().toString()
                     .toLowerCase(Locale.getDefault()).trim();
-
             if (queryName.length() > 2) {
                 if (mLocation != null) {
                     ApiUtils.instance().retrieveQueryInfo(mLocation, queryName, FeedActivity.this);
@@ -107,8 +107,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         mActionBar = getSupportActionBar();
         mActionBar.setTitle("");
 
-        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        mLocation = mLocationManager.getLastKnownLocation(getProviderName());
+        //mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        //mLocation = mLocationManager.getLastKnownLocation(getProviderName());
 
         mMoviesCached = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(this, ApplicationUtils.MOVIES_FILE_NAME);
         mTheatersCached = (LinkedHashMap<String, MovieTheater>) ApplicationUtils.getDataInCache(this, ApplicationUtils.THEATERS_FILE_NAME);
@@ -168,18 +168,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 refresh();
                 break;
             case R.id.action_theaters:
-                mTheatersFragment = new TheatersFragment();
-                Bundle b = new Bundle();
-                b.putSerializable("result", mResult);
-                b.putSerializable("kindIndex", mActionBar.getSelectedNavigationIndex());
-                mTheatersFragment.setArguments(b);
-
-                getSupportFragmentManager().beginTransaction()
-                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                        .replace(R.id.mainContainer, mTheatersFragment)
-                        .addToBackStack(null)
-                        .commit();
+                displayTheatersFragment();
                 break;
             default:
                 break;
@@ -188,11 +177,45 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         return super.onOptionsItemSelected(item);
     }
 
+    protected void displayTheatersFragment() {
+        mTheatersFragment = new TheatersFragment();
+        Bundle b = new Bundle();
+        b.putSerializable("result", mResult);
+        b.putSerializable("kindIndex", mActionBar.getSelectedNavigationIndex());
+        mTheatersFragment.setArguments(b);
+
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                        android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                .replace(R.id.mainContainer, mTheatersFragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
     /**
      *
      */
     public void refreshLocation() {
-        mLocationManager.requestLocationUpdates(getProviderName(), 0, 0, this);
+        SearchLocation myLocation = new SearchLocation();
+        myLocation.getLocation(this, new SearchLocation.LocationResult() {
+            @Override
+            public void gotLocation(Location location) {
+                if (mIsFirstLocation) {
+                    if (location != null) {
+                        Log.d("Location", location.getLatitude() + ", " + location.getLongitude());
+                        mLocation = location;
+                    }
+                    if (mIsFirstLocation) {
+                        mNewLocationFound = true;
+                        mIsFirstLocation = false;
+                        Toast.makeText(FeedActivity.this, getString(R.string.location_done), Toast.LENGTH_LONG).show();
+                        requestData();
+                        //this.refreshTheatersFragment();
+                    }
+                }
+            }
+        });
+        /*mLocationManager.requestLocationUpdates(getProviderName(), 0, 0, this);
         if (mIsFirstLocation) {
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
@@ -208,7 +231,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     }
                 }
             }, REFRESH_LOCATION_TIMEOUT);
-        }
+        }*/
     }
 
     /**
@@ -216,7 +239,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
      *
      * @return Name of best suiting provider.
      */
-    private String getProviderName() {
+    /*private String getProviderName() {
         Criteria c = new Criteria();
         c.setAccuracy(Criteria.ACCURACY_COARSE);
         c.setAltitudeRequired(false);
@@ -228,7 +251,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         String provider = mLocationManager.getBestProvider(c, true);
         Log.d("PROVIDER", provider);
         return provider;
-    }
+    }*/
 
     /**
      *
@@ -319,7 +342,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     @Override
     public void onLocationChanged(Location location) {
-        if (location != null) {
+        /*if (location != null) {
             Log.d("Location", location.getLatitude() + ", " + location.getLongitude());
             mLocation = location;
         }
@@ -330,7 +353,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             this.requestData();
             //this.refreshTheatersFragment();
         }
-        mLocationManager.removeUpdates(this);
+        mLocationManager.removeUpdates(this);*/
 
     }
 
@@ -387,7 +410,21 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
                             } else if (dataset.get(position) instanceof MovieTheater) {
                                 MovieTheater theater = (MovieTheater) dataset.get(position);
-                                mEditSearch.setText(theater.mName);
+                                mEditSearch.setText("");
+                                TheaterFragment tf = new TheaterFragment();
+                                Bundle b = new Bundle();
+                                if (mResult.mTheaters.containsKey(theater.mId)) {
+                                    b.putString("theater_id", theater.mId);
+                                } else {
+                                    b.putSerializable("theater", theater);
+                                }
+                                tf.setArguments(b);
+                                getSupportFragmentManager().beginTransaction()
+                                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                                        .replace(R.id.mainContainer, tf)
+                                        .addToBackStack(null)
+                                        .commit();
                             }
 
                         }

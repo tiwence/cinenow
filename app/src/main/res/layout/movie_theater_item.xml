@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <ImageView
+        android:layout_width="100dp"
+        android:layout_height="150dp"
+        android:id="@+id/moviePosterForTheater"
+        android:scaleType="centerCrop"
+        android:layout_margin="5dp"
+        android:src="@drawable/poster_placeholder"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Titre"
+        android:layout_margin="5dp"
+        android:id="@+id/movieNameForTheater"
+        android:textStyle="bold"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/moviePosterForTheater" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Infos"
+        android:layout_margin="5dp"
+        android:id="@+id/movieInfosForTheater"
+        android:layout_below="@+id/movieNameForTheater"
+        android:layout_toRightOf="@+id/moviePosterForTheater"
+        android:layout_toEndOf="@+id/moviePosterForTheater" />
+
+    <org.apmem.tools.layouts.FlowLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dip"
+        android:background="#11000000"
+        android:layout_below="@+id/movieInfosForTheater"
+        android:id="@+id/movieShowTimesForTheaterLayout"
+        android:layout_toRightOf="@+id/moviePosterForTheater"
+        android:layout_toEndOf="@+id/moviePosterForTheater"
+        android:orientation="horizontal">
+    </org.apmem.tools.layouts.FlowLayout>
+</RelativeLayout>

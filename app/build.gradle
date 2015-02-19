@@ -30,4 +30,5 @@ dependencies {
     compile 'com.lorentzos.swipecards:library:+@aar'
     compile 'com.github.nirhart:parallaxscroll:1.+'
     compile 'org.apmem.tools:layouts:1.8@aar'
+    compile 'com.getbase:floatingactionbutton:1.7.0'
 }

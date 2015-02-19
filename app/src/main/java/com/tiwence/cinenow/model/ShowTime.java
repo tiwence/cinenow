@@ -19,4 +19,5 @@ public class ShowTime implements Serializable {
             return s1.mTimeRemaining - s2.mTimeRemaining;
         }
     };
+    public String mId;
 }

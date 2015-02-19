@@ -60,6 +60,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     private MoviesAdapter mFeedAdapter;
     private int mKindIndex;
     private String mIdSelected = "";
+    private Bundle mySavedInstanceState;
 
     @Nullable
     @Override
@@ -68,9 +69,33 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
         mResult = (ShowTimesFeed) getArguments().getSerializable("result");
 
+        mySavedInstanceState = getArguments();
+
+        if (mySavedInstanceState != null
+                && mySavedInstanceState.getSerializable("nextMovies") != null) {
+            mNextMovies = (ArrayList<Movie>) mySavedInstanceState.getSerializable("nextMovies");
+        }
+
         if (mResult != null && mResult.mNextMovies != null && mResult.mNextMovies.size() > 0) {
             updateDataList(mResult);
         }
+
+        mRootView.findViewById(R.id.reloadImage).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                filterFragment(mKindIndex);
+            }
+        });
+
+        mRootView.findViewById(R.id.theatersFloatingButton).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (getActivity() != null) {
+                    ((FeedActivity)getActivity()).displayTheatersFragment();
+                }
+
+            }
+        });
 
         return mRootView;
     }
@@ -80,19 +105,29 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         super.onCreate(savedInstanceState);
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        mySavedInstanceState.putSerializable("nextMovies", mNextMovies);
+    }
+
     public void updateDataList(ShowTimesFeed result) {
         //Adding feed view
         mResult = result;
         if (this.mResult.mNextMovies != null && this.mResult.mNextMovies.size() > 0) {
             //ActionBar spinner adapter
-            mNextMovies = new ArrayList<>(this.mResult.mNextMovies);
-            Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
+            if (mNextMovies == null) {
+                mNextMovies = new ArrayList<>(this.mResult.mNextMovies);
+                Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
+            }
             mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item,
                     mNextMovies);
+
             mFeedContainer = (SwipeFlingAdapterView) mRootView.findViewById(R.id.frame);
 
             //set the listener and the adapter
             //mFeedContainer.init(getActivity(), mFeedAdapter);
+            mRootView.findViewById(R.id.reloadLayout).setVisibility(View.INVISIBLE);
             mFeedContainer.setAdapter(mFeedAdapter);
             mFeedContainer.setFlingListener(this);
 
@@ -100,7 +135,17 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             mFeedContainer.setOnItemClickListener(new SwipeFlingAdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClicked(int itemPosition, Object dataObject) {
-                    Toast.makeText(getActivity(), "Clicked ! " + itemPosition, Toast.LENGTH_SHORT).show();
+                    MovieFragment mf = new MovieFragment();
+                    Bundle b = new Bundle();
+                    b.putString("movie_id",((Movie)(dataObject)).id_g);
+                    mf.setArguments(b);
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                            .replace(R.id.mainContainer, mf)
+                            .addToBackStack(null)
+                            .commit();
+                    //Toast.makeText(getActivity(), "Clicked ! " + itemPosition, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -110,26 +155,40 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     public void onResume() {
         super.onResume();
         if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
-            ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
-            ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(false);
-            mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
-            filterFragment(mKindIndex);
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+                    ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(false);
+                    if (mKindIndex != ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex()) {
+                        mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
+                        filterFragment(mKindIndex);
+                    }
+                }
+            }, 100);
         }
     }
 
+    /**
+     *
+     */
     private void resetContainer() {
         if (mFeedContainer != null) {
-            Log.d("Feeds", "RESET");
-
             mNextMovies = new ArrayList<Movie>();
             mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
+            mRootView.findViewById(R.id.reloadLayout).setVisibility(View.INVISIBLE);
             mFeedContainer.setAdapter(mFeedAdapter);
             mFeedContainer.setFlingListener(this);
             mFeedAdapter.notifyDataSetChanged();
         }
     }
 
-    public void filterFragment(int kindIndex) {
+    /**
+     *
+     * @param kindIndex
+     */
+    public void filterFragment(final int kindIndex) {
+        Log.d("MoviesFeedFragment", "FILTERED " + kindIndex);
         resetContainer();
         mKindIndex = kindIndex;
         mNextMovies = new ArrayList<>(mResult.mNextMovies);
@@ -143,15 +202,17 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             mNextMovies = filteredMovies;
         }
         Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
+        mySavedInstanceState.putSerializable("nextMovies", mNextMovies);
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 //Reload
                 if (mNextMovies != null && mFeedContainer != null) {
-                    Log.d("Feeds", "FILTER HANDLER DATA LIST");
-
                     mFeedAdapter = new MoviesFeedFragment.MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
+                    Log.d("MoviesFeedFragment", "UPDATEDATALIST FILTER WITH INDEX" + kindIndex);
+
+                    mRootView.findViewById(R.id.reloadLayout).setVisibility(View.INVISIBLE);
                     //mFeedContainer.init(getActivity(), mFeedAdapter);
                     mFeedContainer.setAdapter(mFeedAdapter);
                     mFeedContainer.setFlingListener(MoviesFeedFragment.this);
@@ -171,21 +232,23 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
 
     @Override
     public void onLeftCardExit(Object dataObject) {
-
+        //TODO
     }
 
     @Override
     public void onRightCardExit(Object dataObject) {
-
-
+        //TODO
     }
 
     @Override
     public void onAdapterAboutToEmpty(int itemsInAdapter) {
         // Ask for more data here
         mFeedAdapter.notifyDataSetChanged();
+        if (mNextMovies == null || mNextMovies.size() == 0)
+            mRootView.findViewById(R.id.reloadLayout).setVisibility(View.VISIBLE);
         //Log.d("LIST", "notified");
         i++;
+
     }
 
     @Override
