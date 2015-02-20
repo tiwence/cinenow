@@ -7,6 +7,7 @@ import com.tiwence.cinenow.utils.ApplicationUtils;
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 
@@ -23,19 +24,35 @@ public class ShowTimesFeed implements Serializable {
     public ArrayList<String> mMovieKinds;
 
     public ArrayList<ShowTime> getNextShowtimesByMovieId(String movieId) {
+        //mNextShowTimes = filterNewNextShowTimes();
         ArrayList<ShowTime> showTimes = null;
         for (ShowTime st : mNextShowTimes) {
-            int timeRemaining = ApplicationUtils.getTimeRemaining(st.mShowTimeStr);
-            if (timeRemaining > 0 && st.mMovieId.equals(movieId)) {
+            if (st.mMovieId.equals(movieId)) {
                 if (showTimes == null) showTimes = new ArrayList<ShowTime>();
-                st.mTimeRemaining = timeRemaining;
                 showTimes.add(st);
             }
         }
         return showTimes;
     }
 
+    public void filterNewNextShowTimes() {
+        ArrayList<ShowTime> newNextShowTimes = new ArrayList<>();
+        for (Iterator<String> it = mShowTimes.keySet().iterator(); it.hasNext();) {
+            String idStKey = it.next();
+            ShowTime st = mShowTimes.get(idStKey);
+            int timeRemaining = ApplicationUtils.getTimeRemaining(st.mShowTimeStr);
+            if (timeRemaining > 0 && timeRemaining < 95) {
+                st.mTimeRemaining = timeRemaining;
+                newNextShowTimes.add(st);
+            }
+        }
+
+        Collections.sort(newNextShowTimes, ShowTime.ShowTimeComparator);
+        mNextShowTimes = newNextShowTimes;
+    }
+
     public ArrayList<ShowTime> getNextShowTimesByTheaterId(String theaterId) {
+        //mNextShowTimes = filterNewNextShowTimes();
         ArrayList<ShowTime> showTimes = null;
         for (ShowTime st : mNextShowTimes) {
             if (st.mTheaterId.equals(theaterId)) {
@@ -129,7 +146,8 @@ public class ShowTimesFeed implements Serializable {
         while (it.hasNext()) {
             Movie movieKey = it.next();
             if (this.mMovies == null) this.mMovies = new LinkedHashMap<>();
-            if (this.mMovies.containsKey(movieKey.id_g)) this.mMovies.put(movieKey.id_g, movieKey);
+            if (!this.mMovies.containsKey(movieKey.title))
+                this.mMovies.put(movieKey.title, movieKey);
 
             for (ShowTime st : dataset.get(movieKey)) {
                 if (!this.mShowTimes.containsKey(st.mId)) {
@@ -140,5 +158,46 @@ public class ShowTimesFeed implements Serializable {
 
         }
         Log.d("SHOWTIMES SIZE", "" + mShowTimes.size());
+    }
+
+    public ArrayList<Movie> getNextMovies() {
+        /*mNextShowTimes = filterNewNextShowTimes();*/
+        ArrayList<Movie> nextMovies = new ArrayList<>();
+        if (mNextShowTimes == null)
+            mNextShowTimes = new ArrayList<>();
+        for (ShowTime st : mNextShowTimes) {
+            Movie movie = mMovies.get(st.mMovieId);
+            if(!nextMovies.contains(movie))
+                nextMovies.add(movie);
+        }
+        mNextMovies = nextMovies;
+        return mNextMovies;
+    }
+
+    /**
+     *
+     * @param movie
+     * @param dataset
+     */
+    public void addNewMovieInfos(Movie movie, LinkedHashMap<MovieTheater, ArrayList<ShowTime>> dataset) {
+        if (this.mMovies == null)
+            this.mMovies = new LinkedHashMap<>();
+        mMovies.put(movie.title, movie);
+
+        Iterator<MovieTheater> it = dataset.keySet().iterator();
+        while (it.hasNext()) {
+            MovieTheater theaterKey = it.next();
+            if (this.mTheaters == null) this.mTheaters = new LinkedHashMap<>();
+            if (!this.mTheaters.containsKey(theaterKey.mId))
+                this.mTheaters.put(theaterKey.mId, theaterKey);
+
+            if (dataset.get(theaterKey)!= null) {
+                for (ShowTime st : dataset.get(theaterKey)) {
+                    if (!this.mShowTimes.containsKey(st.mId)) {
+                        mShowTimes.put(st.mId, st);
+                    }
+                }
+            }
+        }
     }
 }

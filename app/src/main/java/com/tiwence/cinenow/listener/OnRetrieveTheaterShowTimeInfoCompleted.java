@@ -11,7 +11,7 @@ import java.util.LinkedHashMap;
 /**
  * Created by temarill on 18/02/2015.
  */
-public interface OnRetrieveTheaterInfoCompleted {
-    void onRetrieveTheaterCompleted(LinkedHashMap<Movie, ArrayList<ShowTime>> dataset);
-    void onRetrieveTheaterError(String errorMessage);
+public interface OnRetrieveTheaterShowTimeInfoCompleted {
+    void onRetrieveTheaterShowTimeInfoCompleted(LinkedHashMap<Movie, ArrayList<ShowTime>> dataset);
+    void onRetrieveTheaterShowTimeInfoError(String errorMessage);
 }

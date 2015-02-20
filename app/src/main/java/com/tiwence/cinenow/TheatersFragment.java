@@ -80,7 +80,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         mKindIndex =  getArguments().getInt("kindIndex");
 
         if (getResults().mTheaters != null && getResults().mTheaters.size() > 0)
-            updateDataList(getResults(), mKindIndex);
+            updateDataList(mKindIndex);
 
         return rootView;
     }
@@ -103,7 +103,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         }
     }
 
-    public void updateDataList(ShowTimesFeed result, int kindIndex) {
+    public void updateDataList(int kindIndex) {
         mKindIndex = kindIndex;
         filterFragment(mKindIndex);
     }

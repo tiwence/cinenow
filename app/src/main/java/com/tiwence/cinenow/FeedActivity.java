@@ -39,6 +39,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by temarill on 27/01/2015.
@@ -47,6 +49,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     //ActionBar stuff
     private AutoCompleteTextView mEditSearch;
+    private MenuItem mSearchItem;
     private SpinnerAdapter mMoviesKindAdapter;
 
     //private LocationManager mLocationManager;
@@ -125,12 +128,12 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
-        MenuItem searchItem = menu.findItem(R.id.action_search);
-        mEditSearch = (AutoCompleteTextView) MenuItemCompat.getActionView(searchItem);
+        mSearchItem = menu.findItem(R.id.action_search);
+        mEditSearch = (AutoCompleteTextView) MenuItemCompat.getActionView(mSearchItem);
         mEditSearch.addTextChangedListener(textWatcher);
         mEditSearch.setHint(R.string.search_placeholder);
 
-        MenuItemCompat.setOnActionExpandListener(searchItem, new MenuItemCompat.OnActionExpandListener() {
+        MenuItemCompat.setOnActionExpandListener(mSearchItem, new MenuItemCompat.OnActionExpandListener() {
             @Override
             public boolean onMenuItemActionExpand(MenuItem item) {
                 mEditSearch.requestFocus();
@@ -264,11 +267,14 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
                 updateFilters();
                 if (mMoviesFeedFragment != null)
-                    mMoviesFeedFragment.updateDataList(mResult);
+                    mMoviesFeedFragment.updateDataList();
                 if (mTheatersFragment != null)
-                    mTheatersFragment.updateDataList(mResult, 0);
+                    mTheatersFragment.updateDataList(0);
                 if (mMoviesFeedFragment == null && mTheatersFragment == null)
                     displayMoviesFeed();
+
+                //For udpating showtimes time remaining
+                launchingTimerTask();
 
                 ApiUtils.instance().retrieveMoviesInfo(FeedActivity.this, result.mMovies, new OnRetrieveMoviesInfoCompleted() {
                     @Override
@@ -297,6 +303,32 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 Toast.makeText(FeedActivity.this, errorMessage, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+
+    Timer mTimer;
+    /**
+     * Function used to upadte each minute showtimes time remaining...
+     */
+    private void launchingTimerTask() {
+        mTimer = new Timer();
+        mTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Log.d("FeedActivity", "Run");
+                mResult.filterNewNextShowTimes();
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //if (mMoviesFeedFragment != null)
+                          //  mMoviesFeedFragment.filterFragment(mActionBar.getSelectedNavigationIndex());
+                        if (mTheatersFragment != null)
+                            mTheatersFragment.updateDataList(mActionBar.getSelectedNavigationIndex());
+                    }
+                });
+            }
+        }, 30 * 1000, 60 * 1000);
     }
 
     /**
@@ -382,6 +414,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         if (dataset != null && dataset.size() > 0) {
             SearchResultAdapter searchedAppsAdapter = new SearchResultAdapter(
                     getApplicationContext(), R.layout.spinner_search_item, dataset);
+
             mEditSearch.setAdapter(searchedAppsAdapter);
             mEditSearch.showDropDown();
 
@@ -390,16 +423,16 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     if (position < dataset.size()) {
                         if (dataset.get(position) != null) {
+                            MenuItemCompat.collapseActionView(mSearchItem);
                             if (dataset.get(position) instanceof Movie) {
                                 Movie movie = (Movie) dataset.get(position);
                                 mEditSearch.setText("");
                                 MovieFragment mf = new MovieFragment();
                                 Bundle b = new Bundle();
-                                if (mResult.mMovies.containsKey(movie.id_g)) {
-                                    b.putString("movie_id", movie.id_g);
-                                } else {
-                                    b.putSerializable("movie", movie);
+                                if (!mResult.mMovies.containsKey(movie.title)) {
+                                    mResult.mMovies.put(movie.title, movie);
                                 }
+                                b.putString("movie_id", movie.title);
                                 mf.setArguments(b);
                                 getSupportFragmentManager().beginTransaction()
                                         .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
@@ -409,15 +442,15 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                                         .commit();
 
                             } else if (dataset.get(position) instanceof MovieTheater) {
+
                                 MovieTheater theater = (MovieTheater) dataset.get(position);
                                 mEditSearch.setText("");
                                 TheaterFragment tf = new TheaterFragment();
                                 Bundle b = new Bundle();
-                                if (mResult.mTheaters.containsKey(theater.mId)) {
-                                    b.putString("theater_id", theater.mId);
-                                } else {
-                                    b.putSerializable("theater", theater);
+                                if (!mResult.mTheaters.containsKey(theater.mId)) {
+                                    mResult.mTheaters.put(theater.mId, theater);
                                 }
+                                b.putString("theater_id", theater.mId);
                                 tf.setArguments(b);
                                 getSupportFragmentManager().beginTransaction()
                                         .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,

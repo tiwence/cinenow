@@ -55,7 +55,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
 
     private int i;
     private LinkedHashMap<String, Movie> mCachedMovies;
-    private ShowTimesFeed mResult;
+    //private ShowTimesFeed mResult;
     private ArrayList<Movie> mNextMovies;
     private MoviesAdapter mFeedAdapter;
     private int mKindIndex;
@@ -67,7 +67,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_showtimes_feed, container, false);
         mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
-        mResult = (ShowTimesFeed) getArguments().getSerializable("result");
+        //mResult = (ShowTimesFeed) getArguments().getSerializable("result");
 
         mySavedInstanceState = getArguments();
 
@@ -76,8 +76,8 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             mNextMovies = (ArrayList<Movie>) mySavedInstanceState.getSerializable("nextMovies");
         }
 
-        if (mResult != null && mResult.mNextMovies != null && mResult.mNextMovies.size() > 0) {
-            updateDataList(mResult);
+        if (getResults() != null && getResults().mNextMovies != null && getResults().mNextMovies.size() > 0) {
+            updateDataList();
         }
 
         mRootView.findViewById(R.id.reloadImage).setOnClickListener(new View.OnClickListener() {
@@ -111,13 +111,16 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         mySavedInstanceState.putSerializable("nextMovies", mNextMovies);
     }
 
-    public void updateDataList(ShowTimesFeed result) {
+    public ShowTimesFeed getResults() {
+        return  ((FeedActivity)this.getActivity()).getResults();
+    }
+
+    public void updateDataList() {
         //Adding feed view
-        mResult = result;
-        if (this.mResult.mNextMovies != null && this.mResult.mNextMovies.size() > 0) {
+        if (this.getResults().mNextMovies != null && this.getResults().mNextMovies.size() > 0) {
             //ActionBar spinner adapter
             if (mNextMovies == null) {
-                mNextMovies = new ArrayList<>(this.mResult.mNextMovies);
+                mNextMovies = new ArrayList<>(this.getResults().getNextMovies());
                 Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
             }
             mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item,
@@ -137,7 +140,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 public void onItemClicked(int itemPosition, Object dataObject) {
                     MovieFragment mf = new MovieFragment();
                     Bundle b = new Bundle();
-                    b.putString("movie_id",((Movie)(dataObject)).id_g);
+                    b.putString("movie_id",((Movie)(dataObject)).title);
                     mf.setArguments(b);
                     getActivity().getSupportFragmentManager().beginTransaction()
                             .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
@@ -188,20 +191,23 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
      * @param kindIndex
      */
     public void filterFragment(final int kindIndex) {
-        Log.d("MoviesFeedFragment", "FILTERED " + kindIndex);
         resetContainer();
         mKindIndex = kindIndex;
-        mNextMovies = new ArrayList<>(mResult.mNextMovies);
+        mNextMovies = new ArrayList<>(getResults().getNextMovies());
         ArrayList<Movie> filteredMovies = new ArrayList<>();
         if (mKindIndex > 0) {
             for (Movie m : mNextMovies) {
-                if (m.kind != null && m.kind.equals(mResult.mMovieKinds.get(mKindIndex))) {
+                if (m.kind != null && m.kind.equals(getResults().mMovieKinds.get(mKindIndex))) {
                     filteredMovies.add(m);
                 }
             }
             mNextMovies = filteredMovies;
         }
+
         Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
+
+        logMovies("Next movies");
+
         mySavedInstanceState.putSerializable("nextMovies", mNextMovies);
 
         new Handler().postDelayed(new Runnable() {
@@ -222,6 +228,12 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         }, 200);
     }
 
+
+    public void logMovies(String log) {
+        for (Movie m : mNextMovies) {
+            Log.d(log, m.title + ", " + m.mBestDistance + ", " + m.mFirstTimeRemaining);
+        }
+    }
 
     @Override
     public void removeFirstObjectInAdapter() {
@@ -294,27 +306,31 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             vh = (ViewHolder) convertView.getTag();
 
             final Movie movie = mNextMovies.get(position);
-            final ArrayList<ShowTime> sts = mResult.getNextShowtimesByMovieId(movie.id_g);
+            final ArrayList<ShowTime> sts = getResults().getNextShowtimesByMovieId(movie.title);
 
-            ShowTime bst = sts.get(0);
-            if (movie.mBestNextShowtime != null)
-                bst = movie.mBestNextShowtime;
+            if (sts == null)
+                return  convertView;
 
-            for (int i = 1; i < sts.size(); i++) {
-                ShowTime s = sts.get(i);
-                TextView tv = new TextView(getActivity());
-                tv.setTextColor(Color.WHITE);
-                tv.setTextSize(14.0f);
-                tv.setPadding(5, 5, 5, 5);
-                tv.setText("OLOLOL" + ApplicationUtils.getTimeString(s.mTimeRemaining) + " " + mResult.mTheaters.get(s.mTheaterId).mName);
-                vh.mOtherShowTimesLayout.addView(tv);
+            ShowTime bst = movie.mBestNextShowtime;
+            if (bst != null) {
+                vh.mTimeRemaining.setText("" + ApplicationUtils.getTimeString(bst.mTimeRemaining));
+                vh.mMovieTitle.setText(getResults().mMovies.get(bst.mMovieId).title);
+                vh.mTheaterName.setText(getResults().mTheaters.get(bst.mTheaterId).mName);
+
+                for (int i = 0; i < sts.size(); i++) {
+                    ShowTime s = sts.get(i);
+                    if (!s.mId.equals(bst.mId)) {
+                        TextView tv = new TextView(getActivity());
+                        tv.setTextColor(Color.WHITE);
+                        tv.setTextSize(14.0f);
+                        tv.setPadding(5, 5, 5, 5);
+                        tv.setText(ApplicationUtils.getTimeString(s.mTimeRemaining) + " " + getResults().mTheaters.get(s.mTheaterId).mName);
+                        vh.mOtherShowTimesLayout.addView(tv);
+                    }
+                }
             }
 
-            vh.mOtherShowTimesLayout.setVisibility(View.GONE);
-
-            vh.mTimeRemaining.setText("" + ApplicationUtils.getTimeString(bst.mTimeRemaining));
-            vh.mMovieTitle.setText(mResult.mMovies.get(bst.mMovieId).title);
-            vh.mTheaterName.setText(mResult.mTheaters.get(bst.mTheaterId).mName);
+            //vh.mOtherShowTimesLayout.setVisibility(View.GONE);
 
             vh.showOtherShowTimesButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -331,20 +347,27 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 }
             });
             //Get poster
-            if (mResult.mMovies.get(bst.mMovieId).poster_path != null &&
-                    !mResult.mMovies.get(bst.mMovieId).poster_path.equals("")) {
-                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mResult.mMovies.get(bst.mMovieId).poster_path;
+            if (getResults().mMovies.get(bst.mMovieId).poster_path != null &&
+                    !getResults().mMovies.get(bst.mMovieId).poster_path.equals("")) {
+                Log.d("POSTER 1", movie.title + ", " + movie.poster_path);
+
+                String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + getResults().mMovies.get(bst.mMovieId).poster_path;
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else if (mCachedMovies != null && mCachedMovies.containsKey(bst.mMovieId)
                     && mCachedMovies.get(bst.mMovieId).poster_path != null
                     && !mCachedMovies.get(bst.mMovieId).poster_path.equals("")) {
                 String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(bst.mMovieId).poster_path;
+
+                Log.d("POSTER 2", mCachedMovies.get(bst.mMovieId).title + ", " + mCachedMovies.get(bst.mMovieId).poster_path);
+
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else {
                 final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.mPoster);
-                ApiUtils.instance().retrieveMovieInfo(mResult.mMovies.get(bst.mMovieId), new OnRetrieveMovieInfoCompleted() {
+                ApiUtils.instance().retrieveMovieInfo(getResults().mMovies.get(bst.mMovieId), new OnRetrieveMovieInfoCompleted() {
                     @Override
                     public void onRetrieveMovieInfoCompleted(Movie movie) {
+                        getResults().mMovies.put(movie.title, movie);
+                        Log.d("POSTER 3", movie.title + ", " + movie.poster_path);
                         String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + movie.poster_path;
                         if (imgViewRef != null && imgViewRef.get() != null)
                             Picasso.with(getActivity()).load(posterPath)

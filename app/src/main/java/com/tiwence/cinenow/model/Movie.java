@@ -59,4 +59,23 @@ public class Movie implements Serializable {
 
 
     public boolean movieInfosCompleted;
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || obj.getClass() != this.getClass()) {
+            return false;
+        }
+
+        Movie movie = (Movie) obj;
+        if (title == null || movie.title == null) {
+            return false;
+        }
+        if (this.title.equals(movie.title))
+            return true;
+
+        return false;
+    }
 }

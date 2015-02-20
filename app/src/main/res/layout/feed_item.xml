@@ -93,7 +93,7 @@
             android:layout_below="@+id/showtimeTheaterTextView"
             android:id="@+id/movieShowTimesLayout"
             android:clipChildren="false"
-            android:visibility="gone"/>
+            android:visibility="visible"/>
 
     </RelativeLayout>
 
