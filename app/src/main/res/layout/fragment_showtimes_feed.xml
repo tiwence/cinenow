@@ -20,7 +20,7 @@
         android:id="@+id/theatersFloatingButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        fab:fab_icon="@drawable/ic_fab_star"
+        fab:fab_icon="@drawable/theater_placeholder_2"
         fab:fab_colorNormal="@color/half_black"
         fab:fab_colorPressed="@color/background"
         android:layout_gravity="right"

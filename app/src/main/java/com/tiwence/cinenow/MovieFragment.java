@@ -1,7 +1,9 @@
 package com.tiwence.cinenow;
 
+import android.app.Activity;
 import android.content.Context;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
@@ -26,6 +28,8 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 import com.tiwence.cinenow.adapter.SearchResultAdapter;
+import com.tiwence.cinenow.adapter.TheaterDistanceHelper;
+import com.tiwence.cinenow.listener.OnQueryResultClickListener;
 import com.tiwence.cinenow.listener.OnRetrieveMovieCreditsCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieMoreInfosCompleted;
@@ -40,6 +44,9 @@ import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
 
+import org.w3c.dom.Text;
+
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,7 +57,7 @@ import java.util.Map;
 /**
  * Created by temarill on 02/02/2015.
  */
-public class MovieFragment extends android.support.v4.app.Fragment implements OnRetrieveQueryCompleted {
+public class MovieFragment extends android.support.v4.app.Fragment implements OnRetrieveQueryCompleted, View.OnClickListener {
 
     private View mRootView;
     private ImageView mBackdropView;
@@ -61,6 +68,8 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     private ArrayList<ShowTime> mNextShowTimes;
     private TextView mMovieOverview;
     private TextView mMovieAverageView;
+    private TextView mDurationView;
+    private TextView mKindView;
 
     private AutoCompleteTextView mEditSearch;
     private MenuItem mSearchItem;
@@ -70,6 +79,8 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     private Location mLocation;
 
     private boolean needToGetPosterPath;
+
+    private OnQueryResultClickListener mQueryResultClickListener;
 
     /**
      * Text watcher used to search movies or theaters
@@ -112,13 +123,8 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
 
         mLocation = ((FeedActivity)getActivity()).getLocation();
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                configureView();
-                requestMovieInfos();
-            }
-        }, 100);
+        configureView();
+        requestMovieInfos();
 
         return mRootView;
     }
@@ -127,6 +133,13 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        mQueryResultClickListener = (OnQueryResultClickListener) activity;
+
     }
 
     public ShowTimesFeed getResult() {
@@ -146,11 +159,14 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
         mMovieOverview = (TextView) mRootView.findViewById(R.id.movieOverviewTextView);
         mMovieAverageView = (TextView) mRootView.findViewById(R.id.voteAverageTextView);
         mPosterView = (ImageView) mRootView.findViewById(R.id.moviePosterImageView);
+        mDurationView = (TextView) mRootView.findViewById(R.id.movieDurationTextView);
+        mKindView = (TextView) mRootView.findViewById(R.id.movieKindTextView);
 
         //Setting element
         mMovieTitleView.setText(mCurrentMovie.title);
-        mMovieAverageView.setText("" + mCurrentMovie.vote_average + "/10");
+        mMovieAverageView.setText(getString(R.string.vote_average) + " " + String.valueOf(mCurrentMovie.vote_average) + "/10");
         mMovieOverview.setText(mCurrentMovie.overview);
+        mDurationView.setText(getString(R.string.duration) + " " + mCurrentMovie.duration_time);
 
         displayPosterAndBackdrop();
         displayNextShowTimes();
@@ -185,6 +201,12 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
         }
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        getResult().filterNewNextShowTimes();
+    }
+
     /**
      *
      */
@@ -206,7 +228,9 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
                 }
                 tv.setText(Html.fromHtml(ApplicationUtils.getTimeString(s.mTimeRemaining)
                         + " <strong>" + getResult().mTheaters.get(s.mTheaterId).mName + "</strong>"));
+                tv.setTag(s);
                 nextShowTimesLayout.addView(tv);
+                tv.setOnClickListener(this);
             }
         }
     }
@@ -221,13 +245,25 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
         if (mShowtimeDataset != null && mShowtimeDataset.size() > 0) {
             for (Map.Entry<MovieTheater, ArrayList<ShowTime>> entry : mShowtimeDataset.entrySet()) {
                 LinearLayout theaterShowTimesLayout = (LinearLayout) getActivity().getLayoutInflater().inflate(R.layout.theater_for_movie_item, null);
-                ((TextView) theaterShowTimesLayout.findViewById(R.id.theaterNameForMovieText)).setText(entry.getKey().mName);
+                TextView theaterNameTextView = (TextView) theaterShowTimesLayout.findViewById(R.id.theaterNameForMovieText);
+                if (entry.getKey().mDistance >= 10000) {
+                    final WeakReference<TextView> distanceRef = new WeakReference<TextView>(theaterNameTextView);
+                    new TheaterDistanceHelper(mLocation, getResult(), distanceRef, true).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, entry.getKey());
+                } else {
+                    theaterNameTextView.setText(entry.getKey().mName + " (" + entry.getKey().mDistance + " km)");
+                }
+                theaterNameTextView.setOnClickListener(this);
+                ShowTime tempSt = new ShowTime();
+                tempSt.mTheaterId = entry.getKey().mName;
+                theaterNameTextView.setTag(tempSt);
 
                 for (ShowTime st : entry.getValue()) {
                     TextView stv = new TextView(getActivity());
                     stv.setTextSize(16.0f);
                     stv.setText(st.mShowTimeStr);
                     stv.setPadding(8, 5, 8, 5);
+                    stv.setTag(st);
+                    stv.setOnClickListener(this);
                     ((ViewGroup) theaterShowTimesLayout.findViewById(R.id.showtimesForMovieLayout)).addView(stv);
                 }
 
@@ -333,7 +369,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
                 castStr += cast.name;
                 if (i < maxIndex - 1) castStr += ", ";
             }
-            ((TextView)mRootView.findViewById(R.id.movieCastTextView)).setText(castStr);
+            ((TextView)mRootView.findViewById(R.id.movieCastTextView)).setText(getString(R.string.with) + " " + castStr);
         } else {
             mRootView.findViewById(R.id.movieCastTextView).setVisibility(View.GONE);
         }
@@ -345,7 +381,8 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
                 }
             }
             if (!crewStr.equals("")) {
-                ((TextView)mRootView.findViewById(R.id.movieDirectorNameTextView)).setText("De " + crewStr);
+                crewStr = crewStr.substring(0, crewStr.length() - 2);
+                ((TextView)mRootView.findViewById(R.id.movieDirectorNameTextView)).setText(getString(R.string.from) + " " + crewStr);
                 return;
             }
         }
@@ -357,6 +394,20 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
      */
     private void displayMovieOverview() {
         ((TextView)mRootView.findViewById(R.id.movieOverviewTextView)).setText(mCurrentMovie.overview);
+        if (mCurrentMovie.kind != null && mCurrentMovie.kind.length() > 0) {
+            mKindView.setText(getString(R.string.kind) + " " + mCurrentMovie.kind);
+        }
+        if (mCurrentMovie.kinds != null) {
+            String genres = "";
+            for (String genre : mCurrentMovie.kinds) {
+                genres += genre + ", ";
+            }
+            if (genres.length() > 0) {
+                genres = genres.substring(0, genres.length() - 2);
+                mKindView.setText(getString(R.string.kind) + " " + genres);
+                mKindView.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     @Override
@@ -388,7 +439,6 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
         menu.findItem(R.id.action_search).setVisible(false);
         menu.findItem(R.id.action_refresh).setVisible(false);
         menu.findItem(R.id.action_settings).setVisible(false);
-        menu.findItem(R.id.action_theaters).setVisible(false);
         ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
         ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
     }
@@ -423,42 +473,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     if (position < dataset.size()) {
                         if (dataset.get(position) != null) {
-
-                            MenuItemCompat.collapseActionView(mSearchItem);
-                            if (dataset.get(position) instanceof Movie) {
-                                Movie movie = (Movie) dataset.get(position);
-                                mEditSearch.setText("");
-                                MovieFragment mf = new MovieFragment();
-                                Bundle b = new Bundle();
-                                if (!getResult().mMovies.containsKey(movie.title)) {
-                                    getResult().mMovies.put(movie.title, movie);
-                                }
-                                b.putString("movie_id", movie.title);
-                                mf.setArguments(b);
-                                getActivity().getSupportFragmentManager().beginTransaction()
-                                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                                        .replace(R.id.mainContainer, mf)
-                                        .addToBackStack(null)
-                                        .commit();
-                            } else if (dataset.get(position) instanceof MovieTheater) {
-                                MovieTheater theater = (MovieTheater) dataset.get(position);
-                                mEditSearch.setText("");
-                                TheaterFragment tf = new TheaterFragment();
-                                Bundle b = new Bundle();
-                                if (!getResult().mTheaters.containsKey(theater.mId)) {
-                                    getResult().mTheaters.put(theater.mId, theater);
-                                }
-                                b.putString("theater_id", theater.mId);
-                                tf.setArguments(b);
-                                getActivity().getSupportFragmentManager().beginTransaction()
-                                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                                        .replace(R.id.mainContainer, tf)
-                                        .addToBackStack(null)
-                                        .commit();
-                            }
-
+                            mQueryResultClickListener.onQueryResultClicked(dataset, position, mSearchItem, mEditSearch);
                         }
                     }
                 }
@@ -469,5 +484,12 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     @Override
     public void onRetrieveQueryError(String errorMessage) {
         //TODO
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (v.getTag() != null) {
+            ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
+        }
     }
 }

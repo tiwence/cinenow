@@ -2,7 +2,6 @@ package com.tiwence.cinenow.listener;
 
 import com.tiwence.cinenow.model.Movie;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 /**

@@ -1,6 +1,5 @@
 package com.tiwence.cinenow.listener;
 
-import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTime;
 

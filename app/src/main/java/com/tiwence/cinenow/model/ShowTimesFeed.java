@@ -5,7 +5,6 @@ import android.util.Log;
 import com.tiwence.cinenow.utils.ApplicationUtils;
 
 import java.io.Serializable;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -137,10 +136,16 @@ public class ShowTimesFeed implements Serializable {
         return showTimes;
     }
 
+    /**
+     *
+     * @param theater
+     * @param dataset
+     */
     public void addNewTheaterInfos(MovieTheater theater, LinkedHashMap<Movie, ArrayList<ShowTime>> dataset) {
         if (this.mTheaters == null)
             this.mTheaters = new LinkedHashMap<>();
-        mTheaters.put(theater.mId, theater);
+        if (mTheaters.containsKey(theater.mName))
+            mTheaters.put(theater.mName, theater);
 
         Iterator<Movie> it = dataset.keySet().iterator();
         while (it.hasNext()) {
@@ -151,13 +156,15 @@ public class ShowTimesFeed implements Serializable {
 
             for (ShowTime st : dataset.get(movieKey)) {
                 if (!this.mShowTimes.containsKey(st.mId)) {
-                    Log.d("Adding SHOWTIME", "Movie : " + movieKey.title + ", " + st.mId);
                     mShowTimes.put(st.mId, st);
+                    if (st.mTimeRemaining > 0 && st.mTimeRemaining < 95) {
+                        if (!mNextShowTimes.contains(st)) mNextShowTimes.add(st);
+                    }
                 }
             }
-
+            //filterNewNextShowTimes();
         }
-        Log.d("SHOWTIMES SIZE", "" + mShowTimes.size());
+        Collections.sort(mNextShowTimes, ShowTime.ShowTimeComparator);
     }
 
     public ArrayList<Movie> getNextMovies() {
@@ -188,16 +195,20 @@ public class ShowTimesFeed implements Serializable {
         while (it.hasNext()) {
             MovieTheater theaterKey = it.next();
             if (this.mTheaters == null) this.mTheaters = new LinkedHashMap<>();
-            if (!this.mTheaters.containsKey(theaterKey.mId))
-                this.mTheaters.put(theaterKey.mId, theaterKey);
+            if (!this.mTheaters.containsKey(theaterKey.mName))
+                this.mTheaters.put(theaterKey.mName, theaterKey);
 
             if (dataset.get(theaterKey)!= null) {
                 for (ShowTime st : dataset.get(theaterKey)) {
                     if (!this.mShowTimes.containsKey(st.mId)) {
                         mShowTimes.put(st.mId, st);
+                        if (st.mTimeRemaining > 0 && st.mTimeRemaining < 95) {
+                            if (!mNextShowTimes.contains(st)) mNextShowTimes.add(st);
+                        }
                     }
                 }
             }
         }
+        Collections.sort(mNextShowTimes, ShowTime.ShowTimeComparator);
     }
 }

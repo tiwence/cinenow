@@ -3,7 +3,6 @@ package com.tiwence.cinenow.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 
 /**
  * Created by temarill on 15/01/2015.
@@ -19,9 +18,11 @@ public class Movie implements Serializable {
     public String poster_path;
     public String backdrop_path; //size = 396 ?
     public String release_date;
-    public long vote_average;
+    public double vote_average;
     public String duration_time;
+    public int runtime;
     public String kind;
+    public ArrayList<String> kinds;
     public int mFirstTimeRemaining = -1;
     public ShowTime mBestNextShowtime;
     public double mBestDistance;

@@ -6,7 +6,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.tiwence.cinenow.MovieFragment;
 import com.tiwence.cinenow.listener.OnRetrieveMovieCreditsCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieMoreInfosCompleted;
@@ -31,7 +30,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -74,6 +72,7 @@ public class ApiUtils {
 
                 Document doc = null;
                 try {
+                    TheatersUtils.instance().loadTheatersLocation(context);
                     String query = location.getLatitude() + "," + location.getLongitude();
                     Log.d("Google theaters query", URL_API_MOVIE_THEATERS + query);
                     doc = Jsoup.connect(URL_API_MOVIE_THEATERS + query).get();
@@ -111,32 +110,7 @@ public class ApiUtils {
                 while (it.hasNext()) {
                     String key = it.next();
                     MovieTheater theater = result.mTheaters.get(key);
-                    if (theater.mLatitude == -10000 && theater.mLongitude == -10000) {
-                        String geocodingUrl = MAPQUEST_GEOCODING_ROOT_URL + Uri.encode(theater.mAddress);
-                        String geocodingJSONString = HttpUtils.httpGet(geocodingUrl);
-                        try {
-                            JSONObject geocodingJSON = new JSONObject(geocodingJSONString);
-                            if (geocodingJSON.optJSONArray("results") != null && geocodingJSON.optJSONArray("results").length() > 0) {
-                                JSONObject resultJSON = (JSONObject) geocodingJSON.optJSONArray("results").get(0);
-                                if (resultJSON.optJSONArray("locations") != null) {
-                                    JSONObject latLngJSON = ((JSONObject) resultJSON.optJSONArray("locations").get(0)).optJSONObject("latLng");
-                                    theater.mLatitude = latLngJSON.optDouble("lat");
-                                    theater.mLongitude = latLngJSON.optDouble("lng");
-                                    Location dest = new Location("");
-                                    dest.setLatitude(theater.mLatitude);
-                                    dest.setLongitude(theater.mLongitude);
-                                    dest.setLongitude(theater.mLongitude);
-                                    theater.mDistance = location.distanceTo(dest) / 1000;
-                                    Log.d("Geocoding : ", theater.mName + ", " + theater.mLatitude + ", " + theater.mLongitude + ", " + theater.mDistance);
-                                } else {
-                                    theater.mDistance = 1000;
-                                }
-                            }
-                        } catch (JSONException e) {
-                            theater.mDistance = 1000;
-                            e.printStackTrace();
-                        }
-                    }
+                    theater = geocodeSpecificTheater(theater, location);
                 }
                 return null;
             }
@@ -148,6 +122,53 @@ public class ApiUtils {
                 listener.onRetrieveShowTimesCompleted(result);
             }
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    /**
+     *
+     * @param theater
+     * @param location
+     * @return
+     */
+    public MovieTheater geocodeSpecificTheater(MovieTheater theater, Location location) {
+        if (theater.mLatitude == -10000 && theater.mLongitude == -10000) {
+            theater = TheatersUtils.instance().getTheaterDistance(theater, location);
+            if (theater.mDistance < 0) {
+                String geocodingUrl = MAPQUEST_GEOCODING_ROOT_URL + Uri.encode(theater.mAddress);
+                Log.d("Geocoding url", geocodingUrl);
+                String geocodingJSONString = HttpUtils.httpGet(geocodingUrl);
+                try {
+                    JSONObject geocodingJSON = new JSONObject(geocodingJSONString);
+                    if (geocodingJSON.optJSONArray("results") != null && geocodingJSON.optJSONArray("results").length() > 0) {
+                        JSONObject resultJSON = (JSONObject) geocodingJSON.optJSONArray("results").get(0);
+                        if (resultJSON.optJSONArray("locations") != null) {
+                            JSONObject latLngJSON = ((JSONObject) resultJSON.optJSONArray("locations").get(0)).optJSONObject("latLng");
+                            theater.mLatitude = latLngJSON.optDouble("lat");
+                            theater.mLongitude = latLngJSON.optDouble("lng");
+                            Location dest = new Location("");
+                            dest.setLatitude(theater.mLatitude);
+                            dest.setLongitude(theater.mLongitude);
+                            theater.mDistance = location.distanceTo(dest) / 1000;
+                            theater.mDistance = (double)Math.round(theater.mDistance * 100) / 100;
+                            Log.d("Geocoding : ", theater.mName + ", " + theater.mLatitude + ", " + theater.mLongitude + ", " + theater.mDistance);
+                        } else {
+                            theater.mDistance = 1000;
+                        }
+                    }
+                } catch (JSONException e) {
+                    theater.mDistance = 1000;
+                    e.printStackTrace();
+                }
+            }
+        } else if (theater.mDistance >= 10000) {
+            Location dest = new Location("");
+            dest.setLatitude(theater.mLatitude);
+            dest.setLongitude(theater.mLongitude);
+            dest.setLongitude(theater.mLongitude);
+            theater.mDistance = location.distanceTo(dest) / 1000;
+        }
+
+        return theater;
     }
 
     /**
@@ -233,7 +254,7 @@ public class ApiUtils {
 
                                 ShowTime st = new ShowTime();
                                 st.mMovieId = movie.title;
-                                st.mTheaterId = movieTheater.mId;
+                                st.mTheaterId = movieTheater.mName;
                                 st.mShowTimeStr = showTime;
                                 st.mTimeRemaining = timeRemaining;
                                 st.mId = st.mMovieId + st.mTheaterId + st.mShowTimeStr;
@@ -255,7 +276,7 @@ public class ApiUtils {
                         }
                     }
                     if (showTimeNb > 0)
-                        theaters.put(movieTheater.mId, movieTheater);
+                        theaters.put(movieTheater.mName, movieTheater);
                 }
             }
         }
@@ -330,6 +351,7 @@ public class ApiUtils {
                         movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
                         movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
                         movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optLong("vote_average");
+                        movie.runtime = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("runtime");
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -375,9 +397,9 @@ public class ApiUtils {
                                 movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
                                 movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
                                 movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
-                                //movie.overview = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("overview");
                                 movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
-                                movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optLong("vote_average");
+                                movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optDouble("vote_average");
+                                movie.runtime = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("runtime");
                                 this.publishProgress(movie);
                             }
                         } catch (JSONException e) {
@@ -498,16 +520,19 @@ public class ApiUtils {
                         String movieLink = theaterElement.getElementsByTag("a").get(0).attr("href");
                         movieTheater.mId = movieLink.split("tid=")[movieLink.split("tid=").length - 1];
                         if (movieTheater.mId == null || movieTheater.mId.isEmpty()) {
-                            movieLink = doc.getElementsByClass("left_nav").get(0).getElementsByTag("a").get(0).attr("href");
+                            movieLink = doc.getElementById("left_nav").getElementsByTag("a").get(0).attr("href");
                             movieTheater.mId = movieLink.split("tid=")[movieLink.split("tid=").length - 1];
                         }
                         movieTheater.mName = theaterElement.getElementsByTag("h2").get(0).text();
-                        movieTheater.mAddress = theaterElement.getElementsByClass("info").get(0).text();
+                        if (theaterElement.getElementsByClass("info").get(0).text().split(" - ").length > 1)
+                            movieTheater.mAddress = theaterElement.getElementsByClass("info").get(0).text().split(" - ")[0];
+                        else
+                            movieTheater.mAddress = theaterElement.getElementsByClass("info").get(0).text();
                         movieTheater.mDistance = 10000.0;
 
                         Log.d("PARSE QUERY RESULT", "Adding theater 2 : " + movieTheater.mId);
 
-                        if (movieTheater.mId != null && !movieTheater.mId.equals("")) {
+                        if (movieTheater.mName != null && !movieTheater.mName.equals("")) {
                             if (data == null) data = new ArrayList<>();
                             data.add(movieTheater);
 
@@ -540,6 +565,11 @@ public class ApiUtils {
                         JSONObject movieJSON = new JSONObject(movieJSONString);
                         movie.release_date = movieJSON.optString("release_date");
                         movie.overview = movieJSON.optString("overview");
+                        for(int i = 0; i < movieJSON.optJSONArray("genres").length(); i++) {
+                            if (movie.kinds == null) movie.kinds = new ArrayList<String>();
+                            if (!movie.kinds.contains(movieJSON.optJSONArray("genres").getJSONObject(i).optString("name")))
+                                movie.kinds.add(movieJSON.optJSONArray("genres").getJSONObject(i).optString("name"));
+                        }
                         return movie;
                     }
                 } catch (JSONException e) {
@@ -640,7 +670,12 @@ public class ApiUtils {
             @Override
             protected LinkedHashMap<Movie, ArrayList<ShowTime>> doInBackground(Void... params) {
                 Document doc = null;
-                String theaterUrl = URL_API_THEATER + theater.mId;
+                String theaterUrl;
+                if (theater.mId != null && theater.mId.length() > 0) {
+                    theaterUrl = URL_API_THEATER + theater.mId;
+                } else {
+                    theaterUrl = URL_API_MOVIE_THEATERS + "&q=" + theater.mName;
+                }
                 try {
                     doc = Jsoup.connect(theaterUrl).get();
                     return createMoviesDatasetForTheater(context, theater, doc);
@@ -679,6 +714,7 @@ public class ApiUtils {
             if (cachedMovies != null && cachedMovies.containsKey(movieId)) {
                 movie = cachedMovies.get(movieId);
             } else {
+                movie.duration_time = movieElement.getElementsByClass("info").get(0).text().split("-")[0];
                 movie.infos_g = movieElement.getElementsByClass("info").get(0).text();
                 movie.title = movieElement.getElementsByClass("name").get(0).text();
             }
@@ -697,7 +733,7 @@ public class ApiUtils {
 
                     ShowTime st = new ShowTime();
                     st.mMovieId = movie.title;
-                    st.mTheaterId = theater.mId;
+                    st.mTheaterId = theater.mName;
                     st.mShowTimeStr = showTime;
                     st.mTimeRemaining = timeRemaining;
                     st.mId = st.mMovieId + st.mTheaterId + st.mShowTimeStr;
@@ -791,7 +827,7 @@ public class ApiUtils {
                     int timeRemaining = ApplicationUtils.getTimeRemaining(showTime);
                     ShowTime st = new ShowTime();
                     st.mMovieId = movie.title;
-                    st.mTheaterId = theater.mId;
+                    st.mTheaterId = theater.mName;
                     st.mShowTimeStr = showTime;
                     st.mTimeRemaining = timeRemaining;
                     st.mId = st.mMovieId + st.mTheaterId + st.mShowTimeStr;

@@ -3,7 +3,6 @@ package com.tiwence.cinenow.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 
 /**
  * Created by temarill on 15/01/2015.

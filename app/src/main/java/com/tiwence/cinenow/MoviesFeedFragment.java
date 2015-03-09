@@ -1,11 +1,8 @@
 package com.tiwence.cinenow;
 
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Color;
-import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
@@ -15,32 +12,23 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListAdapter;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import com.andexert.expandablelayout.library.ExpandableLayout;
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
 import com.squareup.picasso.Picasso;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
-import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
-import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
 
-import org.jsoup.Connection;
-import org.w3c.dom.Text;
-
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -276,7 +264,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     /**
      *
      */
-    public class MoviesAdapter extends ArrayAdapter<Movie> {
+    public class MoviesAdapter extends ArrayAdapter<Movie> implements View.OnClickListener {
 
         private Context mContext;
         private MoviesFeedFragment mFeedFragment;
@@ -316,6 +304,10 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 vh.mTimeRemaining.setText("" + ApplicationUtils.getTimeString(bst.mTimeRemaining));
                 vh.mMovieTitle.setText(getResults().mMovies.get(bst.mMovieId).title);
                 vh.mTheaterName.setText(getResults().mTheaters.get(bst.mTheaterId).mName);
+                vh.mTheaterName.setTag(bst);
+                vh.mMovieTitle.setTag(bst);
+                vh.mTheaterName.setOnClickListener(this);
+                vh.mMovieTitle.setOnClickListener(this);
 
                 for (int i = 0; i < sts.size(); i++) {
                     ShowTime s = sts.get(i);
@@ -325,14 +317,16 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                         tv.setTextSize(14.0f);
                         tv.setPadding(5, 5, 5, 5);
                         tv.setText(ApplicationUtils.getTimeString(s.mTimeRemaining) + " " + getResults().mTheaters.get(s.mTheaterId).mName);
+                        tv.setTag(s);
+                        tv.setClickable(true);
+                        tv.setOnClickListener(this);
                         vh.mOtherShowTimesLayout.addView(tv);
                     }
                 }
+                vh.mOtherShowTimesLayout.requestLayout();
             }
 
-            //vh.mOtherShowTimesLayout.setVisibility(View.GONE);
-
-            vh.showOtherShowTimesButton.setOnClickListener(new View.OnClickListener() {
+            /*vh.showOtherShowTimesButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
 
@@ -343,23 +337,26 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                         mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).setVisibility(View.GONE);
                     }
                     Log.d("Visibility", "" + mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).getVisibility());
-                    mFeedContainer.invalidate();
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mFeedContainer.getSelectedView().invalidate();
+                            Log.d("Visibility", "" + ((TextView)mFeedContainer.getSelectedView().findViewById(R.id.showtimeTitleTextView)).getText());
+                            mFeedContainer.getSelectedView().requestLayout();
+                        }
+                    }, 150);
+
                 }
-            });
+            });*/
             //Get poster
             if (getResults().mMovies.get(bst.mMovieId).poster_path != null &&
                     !getResults().mMovies.get(bst.mMovieId).poster_path.equals("")) {
-                Log.d("POSTER 1", movie.title + ", " + movie.poster_path);
-
                 String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + getResults().mMovies.get(bst.mMovieId).poster_path;
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else if (mCachedMovies != null && mCachedMovies.containsKey(bst.mMovieId)
                     && mCachedMovies.get(bst.mMovieId).poster_path != null
                     && !mCachedMovies.get(bst.mMovieId).poster_path.equals("")) {
                 String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(bst.mMovieId).poster_path;
-
-                Log.d("POSTER 2", mCachedMovies.get(bst.mMovieId).title + ", " + mCachedMovies.get(bst.mMovieId).poster_path);
-
                 Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else {
                 final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.mPoster);
@@ -367,7 +364,6 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                     @Override
                     public void onRetrieveMovieInfoCompleted(Movie movie) {
                         getResults().mMovies.put(movie.title, movie);
-                        Log.d("POSTER 3", movie.title + ", " + movie.poster_path);
                         String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + movie.poster_path;
                         if (imgViewRef != null && imgViewRef.get() != null)
                             Picasso.with(getActivity()).load(posterPath)
@@ -382,6 +378,13 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             }
 
             return convertView;
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (v.getTag() != null) {
+                ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
+            }
         }
 
         public class ViewHolder {

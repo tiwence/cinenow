@@ -13,8 +13,18 @@
     <string name="all">Tous</string>
     <string name="action_theaters">Theaters</string>
     <string name="header_next_showtimes">Prochaines séances</string>
-    <string name="header_all_showtimes">Toutes les séances à proximité</string>
+    <string name="header_all_nearest_showtimes">Toutes les séances à proximité</string>
+    <string name="header_all_showtimes">Toutes les séances</string>
     <string name="loading">Loading...</string>
     <string name="reload_feed">Reload feed</string>
+    <string name="theater_dialog_choice">Que voulez vous faire ?</string>
+    <string name="sharing_string">Je vais voir %1$s à %2$s au %3$s. Partant ?</string>
+    <string name="share_with">Partager avec</string>
+    <string name="with">Avec</string>
+    <string name="from">De</string>
+    <string name="kind">Genre : </string>
+    <string name="vote_average">Note : </string>
+    <string name="duration">Durée :</string>
+
 
 </resources>

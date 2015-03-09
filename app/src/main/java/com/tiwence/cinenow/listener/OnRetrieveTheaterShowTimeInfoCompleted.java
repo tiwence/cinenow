@@ -1,9 +1,7 @@
 package com.tiwence.cinenow.listener;
 
 import com.tiwence.cinenow.model.Movie;
-import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTime;
-import com.tiwence.cinenow.model.ShowTimesFeed;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

@@ -1,12 +1,12 @@
 package com.tiwence.cinenow;
 
 import android.content.Context;
-import android.location.Criteria;
+import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
-import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -25,11 +26,14 @@ import android.widget.Toast;
 
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
 import com.tiwence.cinenow.adapter.SearchResultAdapter;
+import com.tiwence.cinenow.listener.OnQueryResultClickListener;
 import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
+import com.tiwence.cinenow.listener.OnSelectChoiceListener;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
+import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
@@ -45,7 +49,8 @@ import java.util.TimerTask;
 /**
  * Created by temarill on 27/01/2015.
  */
-public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCompleted, LocationListener, ActionBar.OnNavigationListener {
+public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCompleted, LocationListener,
+        ActionBar.OnNavigationListener, OnQueryResultClickListener, OnSelectChoiceListener {
 
     //ActionBar stuff
     private AutoCompleteTextView mEditSearch;
@@ -108,6 +113,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         setContentView(R.layout.splash_screen);
 
         mActionBar = getSupportActionBar();
+        mActionBar.hide();
         mActionBar.setTitle("");
 
         //mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -115,6 +121,10 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
         mMoviesCached = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(this, ApplicationUtils.MOVIES_FILE_NAME);
         mTheatersCached = (LinkedHashMap<String, MovieTheater>) ApplicationUtils.getDataInCache(this, ApplicationUtils.THEATERS_FILE_NAME);
+
+        mResult = new ShowTimesFeed();
+        mResult.mTheaters = mTheatersCached;
+        mResult.mMovies = mMoviesCached;
 
         refreshLocation();
     }
@@ -170,9 +180,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             case R.id.action_refresh:
                 refresh();
                 break;
-            case R.id.action_theaters:
-                displayTheatersFragment();
-                break;
             default:
                 break;
         }
@@ -211,7 +218,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     if (mIsFirstLocation) {
                         mNewLocationFound = true;
                         mIsFirstLocation = false;
-                        Toast.makeText(FeedActivity.this, getString(R.string.location_done), Toast.LENGTH_LONG).show();
+                        //Toast.makeText(FeedActivity.this, getString(R.string.location_done), Toast.LENGTH_LONG).show();
                         requestData();
                         //this.refreshTheatersFragment();
                     }
@@ -285,7 +292,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
                     @Override
                     public void onRetrieveMoviesInfoCompleted(LinkedHashMap<String, Movie> movies) {
-                        Log.d("MOVIE SEARCH", "All movies get");
                         mResult.mMovies = movies;
                         ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mMovies, ApplicationUtils.MOVIES_FILE_NAME);
                         //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
@@ -335,14 +341,21 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
      *
      */
     private void displayMoviesFeed() {
+        mActionBar.show();
         setContentView(R.layout.activity_main);
-        mMoviesFeedFragment = new MoviesFeedFragment();
-        Bundle b = new Bundle();
-        b.putSerializable("result", mResult);
-        mMoviesFeedFragment.setArguments(b);
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.mainContainer, mMoviesFeedFragment)
-                .commit();
+
+        //new Handler().post(new Runnable() {
+            //@Override
+          //  public void run() {
+                mMoviesFeedFragment = new MoviesFeedFragment();
+                Bundle b = new Bundle();
+                b.putSerializable("result", mResult);
+                mMoviesFeedFragment.setArguments(b);
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.mainContainer, mMoviesFeedFragment)
+                        .commit();
+           // }
+        //});
     }
 
     /**
@@ -423,43 +436,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     if (position < dataset.size()) {
                         if (dataset.get(position) != null) {
-                            MenuItemCompat.collapseActionView(mSearchItem);
-                            if (dataset.get(position) instanceof Movie) {
-                                Movie movie = (Movie) dataset.get(position);
-                                mEditSearch.setText("");
-                                MovieFragment mf = new MovieFragment();
-                                Bundle b = new Bundle();
-                                if (!mResult.mMovies.containsKey(movie.title)) {
-                                    mResult.mMovies.put(movie.title, movie);
-                                }
-                                b.putString("movie_id", movie.title);
-                                mf.setArguments(b);
-                                getSupportFragmentManager().beginTransaction()
-                                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                                        .replace(R.id.mainContainer, mf)
-                                        .addToBackStack(null)
-                                        .commit();
-
-                            } else if (dataset.get(position) instanceof MovieTheater) {
-
-                                MovieTheater theater = (MovieTheater) dataset.get(position);
-                                mEditSearch.setText("");
-                                TheaterFragment tf = new TheaterFragment();
-                                Bundle b = new Bundle();
-                                if (!mResult.mTheaters.containsKey(theater.mId)) {
-                                    mResult.mTheaters.put(theater.mId, theater);
-                                }
-                                b.putString("theater_id", theater.mId);
-                                tf.setArguments(b);
-                                getSupportFragmentManager().beginTransaction()
-                                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                                        .replace(R.id.mainContainer, tf)
-                                        .addToBackStack(null)
-                                        .commit();
-                            }
-
+                            onQueryResultClicked(dataset, position, mSearchItem, mEditSearch);
                         }
                     }
                 }
@@ -514,5 +491,118 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
      */
     public Location getLocation() {
         return mLocation;
+    }
+
+    @Override
+    public void onQueryResultClicked(List<Object> dataset, int position, MenuItem searchItem, AutoCompleteTextView editSearch) {
+        MenuItemCompat.collapseActionView(searchItem);
+        if (position < dataset.size()) {
+            if (dataset.get(position) != null) {
+                if (dataset.get(position) instanceof Movie) {
+                    Movie movie = (Movie) dataset.get(position);
+                    editSearch.setText("");
+                    MovieFragment mf = new MovieFragment();
+                    Bundle b = new Bundle();
+                    if (!mResult.mMovies.containsKey(movie.title)) {
+                        mResult.mMovies.put(movie.title, movie);
+                    }
+                    b.putString("movie_id", movie.title);
+                    mf.setArguments(b);
+                    getSupportFragmentManager().beginTransaction()
+                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                            .replace(R.id.mainContainer, mf)
+                            .addToBackStack(null)
+                            .commit();
+
+                } else if (dataset.get(position) instanceof MovieTheater) {
+                    MovieTheater theater = (MovieTheater) dataset.get(position);
+                    this.mEditSearch.setText("");
+                    TheaterFragment tf = new TheaterFragment();
+                    Bundle b = new Bundle();
+                    if (!mResult.mTheaters.containsKey(theater.mName)) {
+                        mResult.mTheaters.put(theater.mName, theater);
+                    }
+                    b.putString("theater_id", theater.mName);
+                    tf.setArguments(b);
+                    getSupportFragmentManager().beginTransaction()
+                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                            .replace(R.id.mainContainer, tf)
+                            .addToBackStack(null)
+                            .commit();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onSelectedChoice(String movieTheaterName, ShowTime showTime, int position) {
+        MovieTheater theater = null;
+        switch(position) {
+            case 0:
+                if (showTime == null)
+                    theater = mResult.mTheaters.get(movieTheaterName);
+                else
+                    theater = mResult.mTheaters.get(showTime.mTheaterId);
+
+                if (theater == null) {
+                    theater = new MovieTheater();
+                    theater.mName = movieTheaterName;
+                }
+                TheaterFragment tf = new TheaterFragment();
+                Bundle b = new Bundle();
+                if (!mResult.mTheaters.containsKey(theater.mName)) {
+                    mResult.mTheaters.put(theater.mName, theater);
+                }
+                b.putString("theater_id", theater.mName);
+                tf.setArguments(b);
+                getSupportFragmentManager().beginTransaction()
+                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                        .replace(R.id.mainContainer, tf)
+                        .addToBackStack(null)
+                        .commit();
+                break;
+            case 1:
+                theater = mResult.mTheaters.get(movieTheaterName);
+                String uri;
+                if (theater.mLatitude == -10000 && theater.mLongitude == -10000) {
+                    uri = String.format(Locale.ENGLISH, "http://maps.google.com/maps?&daddr=%s (%s)",
+                            theater.mAddress, movieTheaterName);
+                } else {
+                    uri = String.format(Locale.ENGLISH, "http://maps.google.com/maps?&daddr=%f,%f (%s)",
+                            theater.mLatitude, theater.mLongitude, movieTheaterName);
+                }
+
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                //intent.setClassName("com.google.android.apps.maps", "com.google.android.maps.MapsActivity");
+                startActivity(intent);
+                break;
+            case 2:
+                if (showTime != null) {
+                    Intent shareIntent = new Intent();
+                    shareIntent.setAction(Intent.ACTION_SEND);
+                    shareIntent.putExtra(Intent.EXTRA_TEXT, String.format(getString(R.string.sharing_string),
+                            showTime.mMovieId, showTime.mShowTimeStr, showTime.mTheaterId));
+                    shareIntent.setType("text/plain");
+                    startActivity(Intent.createChooser(shareIntent, getResources().getText(R.string.share_with)));
+                }
+                break;
+        }
+    }
+
+    public void showTheaterChoiceFragment(ShowTime showTime) {
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        // Create and show the dialog.
+        TheaterFragmentDialog newFragment = new TheaterFragmentDialog ();
+        newFragment.setMovieTheaterName(showTime.mTheaterId);
+        if (showTime.mMovieId != null)
+            newFragment.setShowtime(showTime);
+        newFragment.show(ft, "dialog");
+    }
+
+    public LinkedHashMap<String,Movie> getCachedMovies() {
+        return mMoviesCached;
     }
 }

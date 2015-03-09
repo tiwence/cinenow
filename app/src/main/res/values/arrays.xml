@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="theater_choices_array">
+        <item>Voir toutes les séances de ce cinéma</item>
+        <item>Afficher ce cinéma sur une carte</item>
+        <item>Partager la séance</item>
+    </string-array>
+    <string-array name="theater_choices_array_2">
+        <item>Voir toutes les séances de ce cinéma</item>
+        <item>Afficher ce cinéma sur une carte</item>
+    </string-array>
+</resources>

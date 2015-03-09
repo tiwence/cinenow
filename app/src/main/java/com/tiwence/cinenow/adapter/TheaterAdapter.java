@@ -1,5 +1,7 @@
 package com.tiwence.cinenow.adapter;
 
+import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,12 +9,16 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import com.tiwence.cinenow.FeedActivity;
 import com.tiwence.cinenow.MovieFragment;
 import com.tiwence.cinenow.R;
 import com.tiwence.cinenow.TheatersFragment;
 import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTime;
+import com.tiwence.cinenow.utils.ApiUtils;
+import com.tiwence.cinenow.utils.TheatersUtils;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 import it.sephiroth.android.library.widget.AdapterView;
@@ -21,7 +27,7 @@ import it.sephiroth.android.library.widget.HListView;
 /**
  * Created by temarill on 10/02/2015.
  */
-public class TheaterAdapter extends BaseAdapter {
+public class TheaterAdapter extends BaseAdapter implements View.OnClickListener {
 
     ArrayList<MovieTheater> mTheaters;
     LayoutInflater mInflater;
@@ -64,14 +70,24 @@ public class TheaterAdapter extends BaseAdapter {
         }
         vh = (ViewHolder) convertView.getTag();
         final MovieTheater mt = mTheaters.get(position);
-        vh.mTheaterName.setText(mt.mName);
+        if (mt.mDistance >= 10000) {
+            final WeakReference<TextView> distanceRef = new WeakReference<TextView>(vh.mTheaterName);
+            new TheaterDistanceHelper(((FeedActivity)mTheatersFragment.getActivity()).getLocation(), mTheatersFragment.getResults(), distanceRef, true)
+                    .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mt);
+        } else {
+            vh.mTheaterName.setText(mt.mName + " (" + mt.mDistance + " km)");
+        }
+        ShowTime showTimeTemp = new ShowTime();
+        showTimeTemp.mTheaterId = mt.mName;
+        vh.mTheaterName.setTag(showTimeTemp);
+        vh.mTheaterName.setOnClickListener(TheaterAdapter.this);
 
-        vh.mHListView.setAdapter(new ShowtimeAdapter(mTheatersFragment,
-                mTheatersFragment.filteredShowTime(mTheatersFragment.getResults().getNextShowTimesByTheaterId(mt.mId))));
+        vh.mHListView.setAdapter(new ShowtimeAdapter(mTheatersFragment.getActivity(),
+                mTheatersFragment.filteredShowTime(mTheatersFragment.getResults().getNextShowTimesByTheaterId(mt.mName))));
         vh.mHListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                ShowTime st = mTheatersFragment.filteredShowTime(mTheatersFragment.getResults().getNextShowTimesByTheaterId(mt.mId)).get(i);
+                ShowTime st = mTheatersFragment.filteredShowTime(mTheatersFragment.getResults().getNextShowTimesByTheaterId(mt.mName)).get(i);
                 MovieFragment mf = new MovieFragment();
                 Bundle b = new Bundle();
                 b.putString("movie_id", st.mMovieId);
@@ -87,6 +103,13 @@ public class TheaterAdapter extends BaseAdapter {
 
         return convertView;
     }
+
+    @Override
+    public void onClick(View v) {
+        if (v.getTag() != null) {
+            ((FeedActivity)mTheatersFragment.getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
+        }
+     }
 
     public class ViewHolder {
         TextView mTheaterName;

@@ -4,8 +4,15 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <ListView
+    <android.support.v4.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshTheater"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/listViewTheater" />
+        android:layout_height="match_parent">
+
+        <ListView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/listViewTheater" />
+
+    </android.support.v4.widget.SwipeRefreshLayout>
 </LinearLayout>

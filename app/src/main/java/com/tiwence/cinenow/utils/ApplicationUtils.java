@@ -2,8 +2,6 @@ package com.tiwence.cinenow.utils;
 
 import android.content.Context;
 
-import com.tiwence.cinenow.model.Movie;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -14,9 +12,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.TimeZone;
 
 /**

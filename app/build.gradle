@@ -31,4 +31,5 @@ dependencies {
     compile 'com.github.nirhart:parallaxscroll:1.+'
     compile 'org.apmem.tools:layouts:1.8@aar'
     compile 'com.getbase:floatingactionbutton:1.7.0'
+    compile 'com.github.traex.expandablelayout:library:1.2.2'
 }

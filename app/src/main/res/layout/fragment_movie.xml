@@ -81,6 +81,25 @@
                     android:id="@+id/voteAverageTextView"
                     android:layout_below="@+id/movieCastTextView"
                     android:layout_alignLeft="@+id/movieTitleTextView" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:text=""
+                    android:id="@+id/movieKindTextView"
+                    android:layout_below="@+id/voteAverageTextView"
+                    android:layout_alignLeft="@+id/movieTitleTextView" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:text=""
+                    android:id="@+id/movieDurationTextView"
+                    android:layout_below="@+id/movieKindTextView"
+                    android:layout_alignLeft="@+id/movieTitleTextView" />
+
             </RelativeLayout>
 
             <TextView
@@ -119,8 +138,8 @@
                 android:textColor="@android:color/white"
                 android:padding="5dp"
                 android:id="@+id/allShowTimesHeaderText"
-                android:text="@string/header_all_showtimes"
-                android:layout_marginBottom="10dip"
+                android:text="@string/header_all_nearest_showtimes"
+                android:layout_marginBottom="5dip"
                 android:background="@android:color/black" />
 
             <LinearLayout

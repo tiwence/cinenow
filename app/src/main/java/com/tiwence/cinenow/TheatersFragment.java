@@ -4,46 +4,26 @@ package com.tiwence.cinenow;
  * Created by temarill on 19/01/2015.
  */
 
-import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import com.squareup.picasso.Picasso;
-import com.tiwence.cinenow.adapter.ShowtimeAdapter;
 import com.tiwence.cinenow.adapter.TheaterAdapter;
-import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
-import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
-import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
-import com.tiwence.cinenow.listener.OnRetrieveMoviesInfoCompleted;
 
-import java.lang.ref.WeakReference;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
-
-import it.sephiroth.android.library.widget.AdapterView;
-import it.sephiroth.android.library.widget.HListView;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -112,7 +92,6 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
     public void onRefresh() {
         mSwipeRefresh.setRefreshing(true);
         ((FeedActivity)getActivity()).refresh();
-        //TODO refresh correctly
     }
 
     /**
@@ -141,7 +120,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
                 int totalNbST = 0;
                 for (MovieTheater theater : mTheaters) {
                     totalNbST = 0;
-                    for (ShowTime st : this.getResults().getNextShowTimesByTheaterId(theater.mId)) {
+                    for (ShowTime st : this.getResults().getNextShowTimesByTheaterId(theater.mName)) {
                         if (getResults().mMovies.get(st.mMovieId).kind != null &&
                                 getResults().mMovies.get(st.mMovieId).kind.equals(getResults().mMovieKinds.get(mKindIndex))) {
                             totalNbST ++;
