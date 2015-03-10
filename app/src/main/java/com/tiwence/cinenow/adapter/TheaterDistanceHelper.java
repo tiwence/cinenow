@@ -35,7 +35,7 @@ public class TheaterDistanceHelper extends AsyncTask<MovieTheater, Void, MovieTh
     protected void onPostExecute(MovieTheater theater) {
         super.onPostExecute(theater);
         if (mDistanceRef != null && mDistanceRef.get() != null) {
-            if (theater.mDistance < 10000) {
+            if (theater.mDistance < 1000) {
                 if (mHasToDisplayName) {
                     mDistanceRef.get().setText(theater.mName + " (" + theater.mDistance + " km)");
                 } else {

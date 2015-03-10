@@ -16,8 +16,8 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.andexert.expandablelayout.library.ExpandableLayout;
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
 import com.squareup.picasso.Picasso;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
@@ -45,6 +45,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     private LinkedHashMap<String, Movie> mCachedMovies;
     //private ShowTimesFeed mResult;
     private ArrayList<Movie> mNextMovies;
+    private ArrayList<Movie> mFavoriteMovies;
     private MoviesAdapter mFeedAdapter;
     private int mKindIndex;
     private String mIdSelected = "";
@@ -81,7 +82,23 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 if (getActivity() != null) {
                     ((FeedActivity)getActivity()).displayTheatersFragment();
                 }
+            }
+        });
 
+        mRootView.findViewById(R.id.favoritesFloatingButton).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (getActivity() != null) {
+                    MovieFragment mf = new MovieFragment();
+                    Bundle b = new Bundle();
+                    mf.setArguments(b);
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                            .replace(R.id.mainContainer, mf)
+                            .addToBackStack(null)
+                            .commit();
+                }
             }
         });
 
@@ -149,6 +166,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
+                    ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
                     ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
                     ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(false);
                     if (mKindIndex != ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex()) {
@@ -232,12 +250,12 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
 
     @Override
     public void onLeftCardExit(Object dataObject) {
-        //TODO
     }
 
     @Override
     public void onRightCardExit(Object dataObject) {
-        //TODO
+        if (mFavoriteMovies == null) mFavoriteMovies = new ArrayList<>();
+        mFavoriteMovies.add((Movie)dataObject);
     }
 
     @Override
@@ -254,10 +272,10 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     @Override
     public void onScroll(float scrollProgressPercent) {
         View view = mFeedContainer.getSelectedView();
-        if (view != null && view.findViewById(R.id.item_swipe_right_indicator) != null)
-            view.findViewById(R.id.item_swipe_right_indicator).setAlpha(scrollProgressPercent < 0 ? -scrollProgressPercent : 0);
         if (view != null && view.findViewById(R.id.item_swipe_left_indicator) != null)
             view.findViewById(R.id.item_swipe_left_indicator).setAlpha(scrollProgressPercent > 0 ? scrollProgressPercent : 0);
+        if (view != null && view.findViewById(R.id.item_swipe_right_indicator) != null)
+            view.findViewById(R.id.item_swipe_right_indicator).setAlpha(scrollProgressPercent < 0 ? -scrollProgressPercent : 0);
     }
 
 

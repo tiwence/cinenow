@@ -61,6 +61,7 @@ public class TheatersUtils {
             movieTheater.mLongitude = dest.getLongitude();
             return movieTheater;
         } else {
+            movieTheater.mDistance = -1.0;
             return movieTheater;
         }
     }

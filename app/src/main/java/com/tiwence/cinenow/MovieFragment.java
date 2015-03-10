@@ -2,6 +2,12 @@ package com.tiwence.cinenow;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.ShapeDrawable;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -19,6 +25,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
@@ -26,6 +33,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.manuelpeinado.fadingactionbar.FadingActionBarHelper;
+import com.nirhart.parallaxscroll.views.ParallaxScrollView;
 import com.squareup.picasso.Picasso;
 import com.tiwence.cinenow.adapter.SearchResultAdapter;
 import com.tiwence.cinenow.adapter.TheaterDistanceHelper;
@@ -43,6 +52,7 @@ import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
+import com.tiwence.cinenow.utils.MyParallaxScrollview;
 
 import org.w3c.dom.Text;
 
@@ -59,7 +69,7 @@ import java.util.Map;
  */
 public class MovieFragment extends android.support.v4.app.Fragment implements OnRetrieveQueryCompleted, View.OnClickListener {
 
-    private View mRootView;
+    private MyParallaxScrollview mRootView;
     private ImageView mBackdropView;
     private ImageView mPosterView;
     private TextView mMovieTitleView;
@@ -112,11 +122,30 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
 
     };
 
+    public static String hex(float f) {
+        // change the float to raw integer bits(according to the OP's requirement)
+        return hex(Float.floatToRawIntBits(f));
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        mRootView = inflater.inflate(R.layout.fragment_movie, container, false);
-        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
+        mRootView = (MyParallaxScrollview) inflater.inflate(R.layout.fragment_movie, container, false);
+        mRootView.setOnScrollViewListener(new MyParallaxScrollview.OnScrollViewListener() {
+            @Override
+            public void onScrollChanged(MyParallaxScrollview v, int l, int t, int oldl, int oldt) {
+                /*Log.d( "Scroller", l + ", " + t + ", " + oldl + ", " + oldt + "");
+                Log.d("Scroller", "" +
+                        ((FeedActivity)getActivity()).getMActionBar().getHeight());
 
+                Log.d("Scroller", "" +
+                        mRootView.getHeight());
+                float alpha = oldl / mRootView.getHeight();
+                ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#" + hex(alpha) + "212121"));
+                ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(colorDrawable);*/
+            }
+        });
+
+        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
         if (getArguments().getString("movie_id") != null) {
             mCurrentMovie = getResult().mMovies.get(getArguments().getString("movie_id"));
         }
@@ -139,7 +168,6 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         mQueryResultClickListener = (OnQueryResultClickListener) activity;
-
     }
 
     public ShowTimesFeed getResult() {
@@ -205,6 +233,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     public void onResume() {
         super.onResume();
         getResult().filterNewNextShowTimes();
+        ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_transparent));
     }
 
     /**
@@ -246,7 +275,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
             for (Map.Entry<MovieTheater, ArrayList<ShowTime>> entry : mShowtimeDataset.entrySet()) {
                 LinearLayout theaterShowTimesLayout = (LinearLayout) getActivity().getLayoutInflater().inflate(R.layout.theater_for_movie_item, null);
                 TextView theaterNameTextView = (TextView) theaterShowTimesLayout.findViewById(R.id.theaterNameForMovieText);
-                if (entry.getKey().mDistance >= 10000) {
+                if (entry.getKey().mDistance >= 1000) {
                     final WeakReference<TextView> distanceRef = new WeakReference<TextView>(theaterNameTextView);
                     new TheaterDistanceHelper(mLocation, getResult(), distanceRef, true).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, entry.getKey());
                 } else {

@@ -69,7 +69,6 @@ public class ApiUtils {
         new AsyncTask<Void, Void, ShowTimesFeed>() {
             @Override
             protected ShowTimesFeed doInBackground(Void... params) {
-
                 Document doc = null;
                 try {
                     TheatersUtils.instance().loadTheatersLocation(context);
@@ -111,6 +110,7 @@ public class ApiUtils {
                     String key = it.next();
                     MovieTheater theater = result.mTheaters.get(key);
                     theater = geocodeSpecificTheater(theater, location);
+                    Log.d("Theater distance", theater.mName + " : " +theater.mDistance);
                 }
                 return null;
             }
@@ -133,6 +133,7 @@ public class ApiUtils {
     public MovieTheater geocodeSpecificTheater(MovieTheater theater, Location location) {
         if (theater.mLatitude == -10000 && theater.mLongitude == -10000) {
             theater = TheatersUtils.instance().getTheaterDistance(theater, location);
+            Log.d("Theater distance local", theater.mName + " : " + theater.mDistance);
             if (theater.mDistance < 0) {
                 String geocodingUrl = MAPQUEST_GEOCODING_ROOT_URL + Uri.encode(theater.mAddress);
                 Log.d("Geocoding url", geocodingUrl);

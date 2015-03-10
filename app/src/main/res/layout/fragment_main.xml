@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity$PlaceholderFragment"
-    android:background="@android:color/white">
+    android:background="@android:color/white"
+    android:layout_marginTop="?android:attr/actionBarSize">
 
     <android.support.v4.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"

@@ -7,21 +7,7 @@
     android:id="@+id/relativeLayout"
     android:clipChildren="false">
 
-    <View
-        android:id="@+id/item_swipe_left_indicator"
-        android:alpha="0"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_margin="10dp"
-        android:background="#A5F" />
 
-    <View
-        android:id="@+id/item_swipe_right_indicator"
-        android:alpha="0"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_margin="10dp"
-        android:background="#5AF" />
 
     <ImageView
         android:layout_width="match_parent"
@@ -98,5 +84,34 @@
 
     </RelativeLayout>
 
+    <TextView
+        android:id="@+id/item_swipe_left_indicator"
+        android:alpha="0"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="130dp"
+        android:layout_marginLeft="20dp"
+        android:padding="10dp"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="@color/white"
+        android:text="@string/why_not"
+        android:background="@color/feed_infos_background"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/item_swipe_right_indicator"
+        android:alpha="0"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:layout_marginTop="130dp"
+        android:layout_marginRight="20dp"
+        android:textAlignment="center"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:text="@string/no_way"
+        android:background="@color/feed_infos_background"
+        android:layout_alignParentRight="true" />
 
 </RelativeLayout>

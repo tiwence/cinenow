@@ -3,33 +3,35 @@
     android:layout_width="wrap_content" android:layout_height="wrap_content"
     android:padding="10dip">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textAlignment="center"
+        android:background="@color/feed_infos_background"
+        android:id="@+id/movieTimeRemainingText"
+        android:textColor="@color/white"
+        android:padding="5dip"
+        android:gravity="center_horizontal"
+        android:layout_alignLeft="@+id/moviePosterView"
+        android:layout_alignRight="@+id/moviePosterView"/>
+
     <ImageView
         android:layout_width="100dip"
         android:layout_height="150dip"
         android:id="@+id/moviePosterView"
         android:scaleType="centerCrop"
+        android:layout_below="@+id/movieTimeRemainingText"
         android:src="@drawable/poster_placeholder"/>
 
     <TextView
         android:layout_width="100dip"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Bienvenue à Gattaca"
         android:id="@+id/movieTitleText"
         android:layout_below="@+id/moviePosterView"
         android:gravity="center_horizontal"
         android:layout_centerHorizontal="true"
         android:maxLines="3"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="5 min"
-        android:background="@android:color/darker_gray"
-        android:id="@+id/movieTimeRemainingText"
-        android:layout_above="@+id/movieTitleText"
-        android:layout_alignLeft="@+id/moviePosterView"
-        android:padding="5dip"/>
 
 </RelativeLayout>

@@ -70,7 +70,7 @@ public class TheaterAdapter extends BaseAdapter implements View.OnClickListener 
         }
         vh = (ViewHolder) convertView.getTag();
         final MovieTheater mt = mTheaters.get(position);
-        if (mt.mDistance >= 10000) {
+        if (mt.mDistance >= 1000) {
             final WeakReference<TextView> distanceRef = new WeakReference<TextView>(vh.mTheaterName);
             new TheaterDistanceHelper(((FeedActivity)mTheatersFragment.getActivity()).getLocation(), mTheatersFragment.getResults(), distanceRef, true)
                     .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mt);

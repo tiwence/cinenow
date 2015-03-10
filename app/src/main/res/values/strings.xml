@@ -25,6 +25,9 @@
     <string name="kind">Genre : </string>
     <string name="vote_average">Note : </string>
     <string name="duration">Durée :</string>
+    <string name="why_not">Pourquoi pas !</string>
+    <string name="no_way">Non !</string>
+    <string name="favorites_empty">Vous devez d\'abord ajouter un film dans vos favoris !</string>
 
 
 </resources>

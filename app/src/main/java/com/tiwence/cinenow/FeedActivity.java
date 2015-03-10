@@ -108,8 +108,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        requestWindowFeature(Window.FEATURE_ACTION_BAR_OVERLAY);
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.splash_screen);
 
         mActionBar = getSupportActionBar();

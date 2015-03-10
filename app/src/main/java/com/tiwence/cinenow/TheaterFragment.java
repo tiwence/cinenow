@@ -142,6 +142,7 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
         super.onResume();
         if (isFullyLoaded)
             refreshNextShowTimes();
+        ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
     }
 
     public ShowTimesFeed getResult() {
@@ -302,7 +303,7 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
                     case TYPE_ALL_ITEM_SEPARATOR:
                         TextView header = new TextView(getActivity());
                         header.setTextColor(Color.WHITE);
-                        header.setBackgroundColor(Color.BLACK);
+                        header.setBackgroundColor(getResources().getColor(R.color.dark_gray));
                         header.setTextSize(17.0f);
                         header.setPadding(10, 10, 10, 10);
                         header.requestLayout();
@@ -337,7 +338,7 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
                     vh.theaterInfos.setText(mCurrentTheater.mAddress);
                     vh.theaterHeaderMapIcon.setTag(mCurrentTheater.mName);
                     vh.theaterHeaderMapIcon.setOnClickListener(this);
-                    if (mCurrentTheater.mDistance >= 10000) {
+                    if (mCurrentTheater.mDistance >= 1000) {
                         final WeakReference<TextView> distanceRef = new WeakReference<TextView>(vh.theaterDistance);
                         new TheaterDistanceHelper(mLocation, getResult(), distanceRef, false)
                                 .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mCurrentTheater);
