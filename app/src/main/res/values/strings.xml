@@ -28,6 +28,14 @@
     <string name="why_not">Pourquoi pas !</string>
     <string name="no_way">Non !</string>
     <string name="favorites_empty">Vous devez d\'abord ajouter un film dans vos favoris !</string>
+    <string name="action_share">Partager</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="favorites_contextual_selection_header">Sélectionner les films</string>
+    <string name="delete_verification_header">Etes-vous sûr de vouloir supprimer ces %1$d favoris ?</string>
+    <string name="yes">Oui</string>
+    <string name="no">Non</string>
+    <string name="movies_selected">%1$d films sélectionnés</string>
+    <string name="one_movie_selected">1 film sélectionné</string>
 
 
 </resources>

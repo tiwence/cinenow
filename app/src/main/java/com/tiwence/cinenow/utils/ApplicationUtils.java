@@ -1,6 +1,8 @@
 package com.tiwence.cinenow.utils;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.view.View;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -21,6 +23,7 @@ public class ApplicationUtils {
 
     public static final String MOVIES_FILE_NAME = "movies";
     public static final String THEATERS_FILE_NAME = "theaters";
+    public static final String FAVORITES_MOVIES_FILE_NAME = "favorites_movies";
 
     /**
      * @param context
@@ -92,6 +95,18 @@ public class ApplicationUtils {
         long timeRemain = showTimeDate.getTime() - now.getTime();
 
         return (int) ((timeRemain / 1000) / 60);
+    }
+
+    public static final int ANIM_FADEIN = 300;
+    public static void fadeView(View view, boolean fadeIn) {
+        ObjectAnimator animAlpha = null;
+        if (fadeIn) {
+            animAlpha = ObjectAnimator.ofFloat(view, "alpha", 1.0f);
+        } else {
+            animAlpha = ObjectAnimator.ofFloat(view, "alpha", 0.0f);
+        }
+        animAlpha.setDuration(ANIM_FADEIN);
+        animAlpha.start();
     }
 
 

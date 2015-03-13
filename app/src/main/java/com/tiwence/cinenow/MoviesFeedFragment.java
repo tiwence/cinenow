@@ -11,6 +11,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.AlphaAnimation;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -21,11 +23,14 @@ import android.widget.Toast;
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
 import com.squareup.picasso.Picasso;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
+import com.tiwence.cinenow.listener.OnRetrieveMovieMoreInfosCompleted;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
+
+import org.w3c.dom.Text;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -89,13 +94,11 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             @Override
             public void onClick(View v) {
                 if (getActivity() != null) {
-                    MovieFragment mf = new MovieFragment();
-                    Bundle b = new Bundle();
-                    mf.setArguments(b);
+                    FavoritesFragment ff = new FavoritesFragment();
                     getActivity().getSupportFragmentManager().beginTransaction()
                             .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                     android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, mf)
+                            .replace(R.id.mainContainer, ff)
                             .addToBackStack(null)
                             .commit();
                 }
@@ -255,7 +258,11 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     @Override
     public void onRightCardExit(Object dataObject) {
         if (mFavoriteMovies == null) mFavoriteMovies = new ArrayList<>();
-        mFavoriteMovies.add((Movie)dataObject);
+        if (!mFavoriteMovies.contains((Movie)dataObject)) {
+            mFavoriteMovies.add((Movie)dataObject);
+            ApplicationUtils.saveDataInCache(getActivity(), mFavoriteMovies, ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
+        }
+
     }
 
     @Override
@@ -305,6 +312,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 vh.mMovieTitle = (TextView) convertView.findViewById(R.id.showtimeTitleTextView);
                 vh.mTheaterName = (TextView) convertView.findViewById(R.id.showtimeTheaterTextView);
                 vh.mOtherShowTimesLayout = (LinearLayout) convertView.findViewById(R.id.movieShowTimesLayout);
+                vh.mMovieOverView = (TextView) convertView.findViewById(R.id.feedMovieOverviewTextView);
                 vh.showOtherShowTimesButton = (ImageButton) convertView.findViewById(R.id.buttonMoreShowTimes);
                 convertView.setTag(vh);
             }
@@ -324,6 +332,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 vh.mTheaterName.setText(getResults().mTheaters.get(bst.mTheaterId).mName);
                 vh.mTheaterName.setTag(bst);
                 vh.mMovieTitle.setTag(bst);
+                vh.mMovieOverView.setText("PROUT" + movie.overview);
                 vh.mTheaterName.setOnClickListener(this);
                 vh.mMovieTitle.setOnClickListener(this);
 
@@ -344,11 +353,41 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 vh.mOtherShowTimesLayout.requestLayout();
             }
 
-            /*vh.showOtherShowTimesButton.setOnClickListener(new View.OnClickListener() {
+            final WeakReference<TextView> ref = new WeakReference<TextView>(vh.mMovieOverView);
+            vh.showOtherShowTimesButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if (ref.get() != null) {
+                        if (ref.get().getAlpha() == 1.0f) {
+                            ApplicationUtils.fadeView(ref.get(), false);
+                        } else {
+                            if (movie.overview != null && !movie.overview.equals("")) {
+                                if(ref.get() != null) {
+                                    ref.get().setText(movie.overview);
+                                    ApplicationUtils.fadeView(ref.get(), true);
+                                }
+                            } else {
+                                ApiUtils.instance().retrieveMoreMovieInfos(movie, new OnRetrieveMovieMoreInfosCompleted() {
+                                    @Override
+                                    public void onRetrieveMovieMoreInfosCompleted(Movie _movie) {
+                                        movie.overview = _movie.overview;
+                                        getResults().mMovies.put(movie.title, movie);
+                                        ApplicationUtils.saveDataInCache(getActivity(), getResults().mMovies, ApplicationUtils.MOVIES_FILE_NAME);
+                                        ref.get().setText(movie.overview);
+                                        ((TextView)mFeedContainer.getSelectedView().findViewById(R.id.feedMovieOverviewTextView)).setText(movie.overview);
+                                        ((TextView)mFeedContainer.getSelectedView().findViewById(R.id.feedMovieOverviewTextView)).invalidate();
+                                        ApplicationUtils.fadeView(ref.get(), true);
+                                    }
+                                    @Override
+                                    public void onRetrieveMovieMoreInfosError(String errorMessage) {
 
-                    Log.d("Clicked : ", "" + ((ViewHolder) mFeedContainer.getSelectedView().getTag()).mMovieTitle.getText());
+                                    }
+                                });
+                            }
+                        }
+                    }
+
+                    /*Log.d("Clicked : ", "" + ((ViewHolder) mFeedContainer.getSelectedView().getTag()).mMovieTitle.getText());
                     if (mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).getVisibility() == View.GONE) {
                         mFeedContainer.getSelectedView().findViewById(R.id.movieShowTimesLayout).setVisibility(View.VISIBLE);
                     } else {
@@ -362,10 +401,10 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                             Log.d("Visibility", "" + ((TextView)mFeedContainer.getSelectedView().findViewById(R.id.showtimeTitleTextView)).getText());
                             mFeedContainer.getSelectedView().requestLayout();
                         }
-                    }, 150);
+                    }, 150);*/
 
                 }
-            });*/
+            });
             //Get poster
             if (getResults().mMovies.get(bst.mMovieId).poster_path != null &&
                     !getResults().mMovies.get(bst.mMovieId).poster_path.equals("")) {
@@ -412,6 +451,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             TextView mTheaterName;
             LinearLayout mOtherShowTimesLayout;
             ImageButton showOtherShowTimesButton;
+            TextView mMovieOverView;
         }
     }
 }

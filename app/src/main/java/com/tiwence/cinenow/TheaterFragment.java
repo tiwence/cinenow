@@ -247,9 +247,10 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
         private LinkedHashMap<Movie, ArrayList<ShowTime>> mDataset;
 
         public TheaterAdapter() {
-            mInflater = (LayoutInflater)getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            mDataset = getResult().getShowTimesByMoviesForTheater(mCurrentTheater.mName);
-            Log.d("Size : ", "" + mDataset.size());
+            if (getActivity() != null) {
+                mInflater = (LayoutInflater)getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                mDataset = getResult().getShowTimesByMoviesForTheater(mCurrentTheater.mName);
+            }
         }
 
         @Override

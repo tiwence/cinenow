@@ -18,6 +18,20 @@
         android:scaleType="centerCrop"
         android:adjustViewBounds="true" />
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Titre du film"
+        android:layout_alignParentLeft="true"
+        android:id="@+id/feedMovieOverviewTextView"
+        android:layout_above="@+id/dragingLayout"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:padding="10dip"
+        android:background="@color/feed_infos_background"
+        android:alpha="0"/>
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -70,8 +84,7 @@
             android:src="@android:drawable/ic_menu_add"
             android:text="+"
             android:id="@+id/buttonMoreShowTimes"
-            android:layout_alignParentRight="true"
-            android:visibility="gone"/>
+            android:layout_alignParentRight="true"/>
 
         <LinearLayout
             android:layout_width="match_parent"
