@@ -33,6 +33,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.manuelpeinado.fadingactionbar.FadingActionBarHelper;
 import com.nirhart.parallaxscroll.views.ParallaxScrollView;
 import com.squareup.picasso.Picasso;
@@ -67,9 +68,9 @@ import java.util.Map;
 /**
  * Created by temarill on 02/02/2015.
  */
-public class MovieFragment extends android.support.v4.app.Fragment implements OnRetrieveQueryCompleted, View.OnClickListener {
+public class MovieFragment extends android.support.v4.app.Fragment implements View.OnClickListener {
 
-    private MyParallaxScrollview mRootView;
+    private View mRootView;
     private ImageView mBackdropView;
     private ImageView mPosterView;
     private TextView mMovieTitleView;
@@ -80,9 +81,8 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     private TextView mMovieAverageView;
     private TextView mDurationView;
     private TextView mKindView;
-
-    private AutoCompleteTextView mEditSearch;
-    private MenuItem mSearchItem;
+    private FloatingActionButton mFavoritesButton;
+    private ArrayList<Movie> mFavoritesMovies;
 
     private LinkedHashMap<MovieTheater, ArrayList<ShowTime>> mShowtimeDataset;
 
@@ -90,62 +90,16 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
 
     private boolean needToGetPosterPath;
 
-    private OnQueryResultClickListener mQueryResultClickListener;
-
-    /**
-     * Text watcher used to search movies or theaters
-     */
-    private TextWatcher textWatcher = new TextWatcher() {
-
-        @Override
-        public void afterTextChanged(Editable s) {
-            String queryName = mEditSearch.getText().toString()
-                    .toLowerCase(Locale.getDefault()).trim();
-
-            if (queryName.length() > 2) {
-                if (mLocation != null) {
-                    ApiUtils.instance().retrieveQueryInfo(mLocation, queryName, MovieFragment.this);
-                } else {
-                    //TODO ?
-                }
-            }
-        }
-        @Override
-        public void beforeTextChanged(CharSequence arg0, int arg1, int arg2,
-                                      int arg3) {
-        }
-
-        @Override
-        public void onTextChanged(CharSequence arg0, int arg1, int arg2,
-                                  int arg3) {
-        }
-
-    };
-
-    public static String hex(float f) {
-        // change the float to raw integer bits(according to the OP's requirement)
-        return hex(Float.floatToRawIntBits(f));
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        mRootView = (MyParallaxScrollview) inflater.inflate(R.layout.fragment_movie, container, false);
-        mRootView.setOnScrollViewListener(new MyParallaxScrollview.OnScrollViewListener() {
-            @Override
-            public void onScrollChanged(MyParallaxScrollview v, int l, int t, int oldl, int oldt) {
-                /*Log.d( "Scroller", l + ", " + t + ", " + oldl + ", " + oldt + "");
-                Log.d("Scroller", "" +
-                        ((FeedActivity)getActivity()).getMActionBar().getHeight());
+        mRootView = inflater.inflate(R.layout.fragment_movie, container, false);
+        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils
+                .getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
+        mFavoritesMovies = (ArrayList<Movie>) ApplicationUtils
+                .getDataInCache(getActivity(), ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
+        if (mFavoritesMovies == null)
+            mFavoritesMovies = new ArrayList<>();
 
-                Log.d("Scroller", "" +
-                        mRootView.getHeight());
-                float alpha = oldl / mRootView.getHeight();
-                ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#" + hex(alpha) + "212121"));
-                ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(colorDrawable);*/
-            }
-        });
-
-        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
         if (getArguments().getString("movie_id") != null) {
             mCurrentMovie = getResult().mMovies.get(getArguments().getString("movie_id"));
         }
@@ -161,13 +115,23 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
+        setHasOptionsMenu(false);
     }
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        mQueryResultClickListener = (OnQueryResultClickListener) activity;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getResult().filterNewNextShowTimes();
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(false);
+        ((FeedActivity)getActivity()).getMActionBar().setElevation(0);
+        ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_transparent));
+        ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
+        ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     public ShowTimesFeed getResult() {
@@ -189,12 +153,31 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
         mPosterView = (ImageView) mRootView.findViewById(R.id.moviePosterImageView);
         mDurationView = (TextView) mRootView.findViewById(R.id.movieDurationTextView);
         mKindView = (TextView) mRootView.findViewById(R.id.movieKindTextView);
+        mFavoritesButton = (FloatingActionButton) mRootView.findViewById(R.id.favoritesFloatingButton);
 
         //Setting element
         mMovieTitleView.setText(mCurrentMovie.title);
         mMovieAverageView.setText(getString(R.string.vote_average) + " " + String.valueOf(mCurrentMovie.vote_average) + "/10");
         mMovieOverview.setText(mCurrentMovie.overview);
         mDurationView.setText(getString(R.string.duration) + " " + mCurrentMovie.duration_time);
+        if(mFavoritesMovies.contains(mCurrentMovie)) {
+            mFavoritesButton.setIcon(R.drawable.ic_fab_star);
+        } else {
+            mFavoritesButton.setIcon(R.drawable.ic_like);
+        }
+        mFavoritesButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mFavoritesMovies.contains(mCurrentMovie)) {
+                    mFavoritesMovies.remove(mCurrentMovie);
+                    mFavoritesButton.setIcon(R.drawable.ic_like);
+                } else {
+                    mFavoritesMovies.add(mCurrentMovie);
+                    mFavoritesButton.setIcon(R.drawable.ic_fab_star);
+                }
+                ApplicationUtils.saveDataInCache(getActivity(), mFavoritesMovies, ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
+            }
+        });
 
         displayPosterAndBackdrop();
         displayNextShowTimes();
@@ -229,12 +212,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
         }
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        getResult().filterNewNextShowTimes();
-        ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_transparent));
-    }
+
 
     /**
      *
@@ -437,82 +415,6 @@ public class MovieFragment extends android.support.v4.app.Fragment implements On
                 mKindView.setVisibility(View.VISIBLE);
             }
         }
-    }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.menu_movie, menu);
-
-        mSearchItem = menu.findItem(R.id.action_movie_search);
-        mEditSearch = (AutoCompleteTextView) MenuItemCompat.getActionView(mSearchItem);
-        mEditSearch.addTextChangedListener(textWatcher);
-        mEditSearch.setHint(getString(R.string.search_placeholder));
-
-        MenuItemCompat.setOnActionExpandListener(mSearchItem, new MenuItemCompat.OnActionExpandListener() {
-            @Override
-            public boolean onMenuItemActionExpand(MenuItem item) {
-                mEditSearch.requestFocus();
-                InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-                return true;
-            }
-
-            @Override
-            public boolean onMenuItemActionCollapse(MenuItem item) {
-                mEditSearch.setText("");
-                mEditSearch.clearFocus();
-                return true;
-            }
-        });
-
-        menu.findItem(R.id.action_search).setVisible(false);
-        menu.findItem(R.id.action_refresh).setVisible(false);
-        menu.findItem(R.id.action_settings).setVisible(false);
-        ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
-        ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int itemId = item.getItemId();
-        switch (itemId) {
-            case android.R.id.home:
-                getFragmentManager().popBackStack();
-                break;
-        }
-
-        return true;
-    }
-
-    @Override
-    public void onRetrieveQueryDataset(ShowTimesFeed stf) {
-
-    }
-
-    @Override
-    public void onRetrieveQueryCompleted(final List<Object> dataset) {
-        if (dataset != null && dataset.size() > 0) {
-
-            SearchResultAdapter searchedAppsAdapter = new SearchResultAdapter(
-                    getActivity(), R.layout.spinner_search_item, dataset);
-            mEditSearch.setAdapter(searchedAppsAdapter);
-            mEditSearch.showDropDown();
-            mEditSearch.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    if (position < dataset.size()) {
-                        if (dataset.get(position) != null) {
-                            mQueryResultClickListener.onQueryResultClicked(dataset, position, mSearchItem, mEditSearch);
-                        }
-                    }
-                }
-            });
-        }
-    }
-
-    @Override
-    public void onRetrieveQueryError(String errorMessage) {
-        //TODO
     }
 
     @Override

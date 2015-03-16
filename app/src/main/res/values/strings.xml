@@ -2,21 +2,20 @@
 <resources>
 
     <string name="app_name">CineNow</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
-    <string name="action_refresh">Refresh</string>
-    <string name="location_done">Location done</string>
-    <string name="action_search">Search</string>
-    <string name="search_placeholder">Search theater or movie...</string>
+    <string name="action_settings">Paramètres</string>
+    <string name="action_refresh">Rafraîchir</string>
+    <string name="location_done">Localisation effectuée</string>
+    <string name="action_search">Rechercher</string>
+    <string name="search_placeholder">Rechercher un film ou un cinéma...</string>
     <string name="action_feed">Feed</string>
-    <string name="action_kind">Kinds</string>
+    <string name="action_kind">Genres</string>
     <string name="all">Tous</string>
-    <string name="action_theaters">Theaters</string>
+    <string name="action_theaters">Cinémas</string>
     <string name="header_next_showtimes">Prochaines séances</string>
     <string name="header_all_nearest_showtimes">Toutes les séances à proximité</string>
     <string name="header_all_showtimes">Toutes les séances</string>
-    <string name="loading">Loading...</string>
-    <string name="reload_feed">Reload feed</string>
+    <string name="loading">Chargement...</string>
+    <string name="reload_feed">Recharger les films</string>
     <string name="theater_dialog_choice">Que voulez vous faire ?</string>
     <string name="sharing_string">Je vais voir %1$s à %2$s au %3$s. Partant ?</string>
     <string name="share_with">Partager avec</string>
@@ -36,6 +35,9 @@
     <string name="no">Non</string>
     <string name="movies_selected">%1$d films sélectionnés</string>
     <string name="one_movie_selected">1 film sélectionné</string>
+    <string name="no_more_next_showtimes">Pas de prochaines séances</string>
+    <string name="action_favorites_movies">Films favoris</string>
+    <string name="action_favorites_theaters">Cinémas favoris</string>
 
 
 </resources>

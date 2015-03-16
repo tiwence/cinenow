@@ -9,4 +9,11 @@
         <item>Voir toutes les séances de ce cinéma</item>
         <item>Afficher ce cinéma sur une carte</item>
     </string-array>
+    <string-array name="nav_drawer_items">
+        <item >Accueil</item>
+        <item >Films favoris</item>
+        <item >Cinémas favoris</item>
+        <item >Paramètres</item>
+        <item >A propos</item>
+    </string-array>
 </resources>

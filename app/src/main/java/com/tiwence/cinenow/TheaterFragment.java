@@ -26,10 +26,12 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.squareup.picasso.Picasso;
 import com.tiwence.cinenow.adapter.SearchResultAdapter;
 import com.tiwence.cinenow.adapter.ShowtimeAdapter;
@@ -59,7 +61,7 @@ import it.sephiroth.android.library.widget.HListView;
 /**
  * Created by temarill on 18/02/2015.
  */
-public class TheaterFragment extends Fragment implements OnRetrieveQueryCompleted, SwipeRefreshLayout.OnRefreshListener {
+public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener {
 
     private View mRootView;
     private ListView mListViewTheater;
@@ -67,44 +69,14 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
     private Location mLocation;
     private LinkedHashMap<String, Movie> mCachedMovies;
 
-    private MenuItem mSearchItem;
-    private AutoCompleteTextView mEditSearch;
-
     private SwipeRefreshLayout mSwipeRefresh;
 
     private OnQueryResultClickListener mQueryResultClickListener;
     private OnSelectChoiceListener mSelectChoiceListener;
     private boolean isFullyLoaded;
+    private FloatingActionButton mFavoritesButton;
+    private ArrayList<MovieTheater> mFavoritesTheaters;
 
-
-    /**
-     * Text watcher used to search movies or theaters
-     */
-    private TextWatcher textWatcher = new TextWatcher() {
-
-        @Override
-        public void afterTextChanged(Editable s) {
-            String queryName = mEditSearch.getText().toString()
-                    .toLowerCase(Locale.getDefault()).trim();
-
-            if (queryName.length() > 2) {
-                if (mLocation != null) {
-                    ApiUtils.instance().retrieveQueryInfo(mLocation, queryName, TheaterFragment.this);
-                } else {
-                    //TODO ?
-                }
-            }
-        }
-        @Override
-        public void beforeTextChanged(CharSequence arg0, int arg1, int arg2,
-                                      int arg3) {
-        }
-
-        @Override
-        public void onTextChanged(CharSequence arg0, int arg1, int arg2,
-                                  int arg3) {
-        }
-    };
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -112,6 +84,7 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
         mListViewTheater = (ListView) mRootView.findViewById(R.id.listViewTheater);
         mSwipeRefresh = (SwipeRefreshLayout) mRootView.findViewById(R.id.swipeRefreshTheater);
         mSwipeRefresh.setOnRefreshListener(this);
+        mFavoritesButton = (FloatingActionButton) mRootView.findViewById(R.id.favoritesFloatingButton);
         //mListViewTheater.setAdapter(new TheaterAdapter(((FeedActivity))));
 
         if (getArguments().getString("theater_id") != null) {
@@ -120,7 +93,11 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
             mCurrentTheater = (MovieTheater)getArguments().getSerializable("theater");
         }
 
-        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
+        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils
+                .getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
+        mFavoritesTheaters = (ArrayList<MovieTheater>) ApplicationUtils
+                .getDataInCache(getActivity(), ApplicationUtils.FAVORITES_THEATERS_FILE_NAME);
+        if (mFavoritesTheaters == null) mFavoritesTheaters = new ArrayList<>();
 
         mLocation = ((FeedActivity)getActivity()).getLocation();
 
@@ -142,7 +119,12 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
         super.onResume();
         if (isFullyLoaded)
             refreshNextShowTimes();
-        ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(false);
+        ((FeedActivity)getActivity()).getMActionBar()
+                .setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
+        ((FeedActivity) getActivity()).getMActionBar().setDisplayShowTitleEnabled(false);
+        ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
+        ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     public ShowTimesFeed getResult() {
@@ -155,7 +137,7 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
+        setHasOptionsMenu(false);
     }
 
     /**
@@ -163,6 +145,26 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
      */
     private void configureView() {
         mListViewTheater.setAdapter(new TheaterAdapter());
+
+        if(mFavoritesTheaters.contains(mCurrentTheater)) {
+            mFavoritesButton.setIcon(R.drawable.ic_fab_star);
+        } else {
+            mFavoritesButton.setIcon(R.drawable.ic_like);
+        }
+        mFavoritesButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mFavoritesTheaters.contains(mCurrentTheater)) {
+                    mFavoritesTheaters.remove(mCurrentTheater);
+                    mFavoritesButton.setIcon(R.drawable.ic_like);
+                } else {
+                    mFavoritesTheaters.add(mCurrentTheater);
+                    mFavoritesButton.setIcon(R.drawable.ic_fab_star);
+                }
+                ApplicationUtils.saveDataInCache(getActivity(), mFavoritesTheaters, ApplicationUtils.FAVORITES_THEATERS_FILE_NAME);
+            }
+        });
+
         mListViewTheater.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -175,7 +177,7 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
                     getActivity().getSupportFragmentManager().beginTransaction()
                             .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                     android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, mf)
+                            .replace(R.id.mainContainer, mf, movie.title)
                             .addToBackStack(null)
                             .commit();
                 }
@@ -339,7 +341,7 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
                     vh.theaterInfos.setText(mCurrentTheater.mAddress);
                     vh.theaterHeaderMapIcon.setTag(mCurrentTheater.mName);
                     vh.theaterHeaderMapIcon.setOnClickListener(this);
-                    if (mCurrentTheater.mDistance >= 1000) {
+                    if (mCurrentTheater.mDistance >= 1000 || mCurrentTheater.mDistance < 0) {
                         final WeakReference<TextView> distanceRef = new WeakReference<TextView>(vh.theaterDistance);
                         new TheaterDistanceHelper(mLocation, getResult(), distanceRef, false)
                                 .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mCurrentTheater);
@@ -367,7 +369,7 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
                             getActivity().getSupportFragmentManager().beginTransaction()
                                     .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                             android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                                    .replace(R.id.mainContainer, mf)
+                                    .replace(R.id.mainContainer, mf, sts.get(i).mMovieId)
                                     .addToBackStack(null)
                                     .commit();
                         }
@@ -466,78 +468,6 @@ public class TheaterFragment extends Fragment implements OnRetrieveQueryComplete
             shareIntent.setType("text/plain");
             startActivity(Intent.createChooser(shareIntent, getResources().getText(R.string.share_with)));
         }
-    }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.menu_movie, menu);
-
-        mSearchItem = menu.findItem(R.id.action_movie_search);
-        mEditSearch = (AutoCompleteTextView) MenuItemCompat.getActionView(mSearchItem);
-        mEditSearch.addTextChangedListener(textWatcher);
-        mEditSearch.setHint(getString(R.string.search_placeholder));
-
-        MenuItemCompat.setOnActionExpandListener(mSearchItem, new MenuItemCompat.OnActionExpandListener() {
-            @Override
-            public boolean onMenuItemActionExpand(MenuItem item) {
-                mEditSearch.requestFocus();
-                InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-                return true;
-            }
-
-            @Override
-            public boolean onMenuItemActionCollapse(MenuItem item) {
-                mEditSearch.setText("");
-                mEditSearch.clearFocus();
-                return true;
-            }
-        });
-
-        menu.findItem(R.id.action_search).setVisible(false);
-        menu.findItem(R.id.action_refresh).setVisible(false);
-        menu.findItem(R.id.action_settings).setVisible(false);
-        ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
-        ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int itemId = item.getItemId();
-        switch (itemId) {
-            case android.R.id.home:
-                getActivity().getSupportFragmentManager().popBackStack();
-                break;
-        }
-
-        return true;
-    }
-
-    @Override
-    public void onRetrieveQueryDataset(ShowTimesFeed stf) {
-
-    }
-
-    @Override
-    public void onRetrieveQueryCompleted(final List<Object> dataset) {
-        if (dataset != null && dataset.size() > 0) {
-
-            SearchResultAdapter searchedAppsAdapter = new SearchResultAdapter(
-                    getActivity(), R.layout.spinner_search_item, dataset);
-            mEditSearch.setAdapter(searchedAppsAdapter);
-            mEditSearch.showDropDown();
-            mEditSearch.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    mQueryResultClickListener.onQueryResultClicked(dataset, position, mSearchItem, mEditSearch);
-                }
-            });
-        }
-    }
-
-    @Override
-    public void onRetrieveQueryError(String errorMessage) {
-
     }
 
 }

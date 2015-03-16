@@ -95,7 +95,7 @@ public class TheaterAdapter extends BaseAdapter implements View.OnClickListener 
                 mTheatersFragment.getActivity().getSupportFragmentManager().beginTransaction()
                         .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                 android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                        .replace(R.id.mainContainer, mf)
+                        .replace(R.id.mainContainer, mf, st.mMovieId)
                         .addToBackStack(null)
                         .commit();
             }

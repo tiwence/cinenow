@@ -32,4 +32,22 @@ public class MovieTheater implements Serializable {
         }
     };
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || obj.getClass() != this.getClass()) {
+            return false;
+        }
+
+        MovieTheater movie = (MovieTheater) obj;
+        if (mName == null || movie.mName == null) {
+            return false;
+        }
+        if (this.mName.equals(movie.mName))
+            return true;
+
+        return false;
+    }
 }

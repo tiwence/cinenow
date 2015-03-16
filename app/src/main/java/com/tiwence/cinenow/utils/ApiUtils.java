@@ -344,18 +344,20 @@ public class ApiUtils {
                 String query = Uri.encode(movie.title.replaceAll("\\s", "+").replaceAll("3D", ""));
                 String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
                 String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
-                try {
-                    JSONObject movieJSON = new JSONObject(movieJSONString);
-                    if (movieJSON.optInt("total_results") > 0) {
-                        movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
-                        movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
-                        movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
-                        movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
-                        movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optLong("vote_average");
-                        movie.runtime = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("runtime");
+                if (movieJSONString != null) {
+                    try {
+                        JSONObject movieJSON = new JSONObject(movieJSONString);
+                        if (movieJSON.optInt("total_results") > 0) {
+                            movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
+                            movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
+                            movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
+                            movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
+                            movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optLong("vote_average");
+                            movie.runtime = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("runtime");
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                } catch (JSONException e) {
-                    e.printStackTrace();
                 }
                 return movie;
             }
@@ -392,19 +394,21 @@ public class ApiUtils {
                         String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
                         //Log.d("Movie infos", searchMoVieUrl);
                         String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
-                        try {
-                            JSONObject movieJSON = new JSONObject(movieJSONString);
-                            if (movieJSON.optInt("total_results") > 0) {
-                                movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
-                                movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
-                                movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
-                                movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
-                                movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optDouble("vote_average");
-                                movie.runtime = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("runtime");
-                                this.publishProgress(movie);
+                        if (movieJSONString != null) {
+                            try {
+                                JSONObject movieJSON = new JSONObject(movieJSONString);
+                                if (movieJSON.optInt("total_results") > 0) {
+                                    movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
+                                    movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
+                                    movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
+                                    movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
+                                    movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optDouble("vote_average");
+                                    movie.runtime = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("runtime");
+                                    this.publishProgress(movie);
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
                             }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
                         }
                     }
                 }
@@ -605,46 +609,48 @@ public class ApiUtils {
                 String movieUrl = MOVIE_DB_MOVIE_ROOT_URL + movie.id + "/credits?api_key=" + MOVIE_DB_API_KEY + "&language=fr";
                 Log.d("Credits infos", movieUrl);
                 String creditsJSONString = HttpUtils.httpGet(movieUrl);
-                try {
-                    JSONObject creditsJSON = new JSONObject(creditsJSONString);
-                    JSONArray castJSONArray = creditsJSON.optJSONArray("cast");
-                    //Getting cast member
-                    for (int i = 0; i < castJSONArray.length(); i++) {
-                        JSONObject castJSON = castJSONArray.optJSONObject(i);
-                        if (castJSON != null) {
-                            if (movie.mCasts == null) movie.mCasts = new ArrayList<Cast>();
-                            Cast cast = new Cast();
-                            cast.character = castJSON.optString("character");
-                            cast.credit_id = castJSON.optString("credit_id");
-                            cast.id = castJSON.optInt("id");
-                            cast.name = castJSON.optString("name");
-                            cast.order = castJSON.optInt("order");
-                            cast.profile_path = castJSON.optString("profile_path");
-                            movie.mCasts.add(cast);
+                if (creditsJSONString != null) {
+                    try {
+                        JSONObject creditsJSON = new JSONObject(creditsJSONString);
+                        JSONArray castJSONArray = creditsJSON.optJSONArray("cast");
+                        //Getting cast member
+                        for (int i = 0; i < castJSONArray.length(); i++) {
+                            JSONObject castJSON = castJSONArray.optJSONObject(i);
+                            if (castJSON != null) {
+                                if (movie.mCasts == null) movie.mCasts = new ArrayList<Cast>();
+                                Cast cast = new Cast();
+                                cast.character = castJSON.optString("character");
+                                cast.credit_id = castJSON.optString("credit_id");
+                                cast.id = castJSON.optInt("id");
+                                cast.name = castJSON.optString("name");
+                                cast.order = castJSON.optInt("order");
+                                cast.profile_path = castJSON.optString("profile_path");
+                                movie.mCasts.add(cast);
+                            }
                         }
-                    }
-                    JSONArray crewJSONArray = creditsJSON.optJSONArray("crew");
-                    //Getting crew member
-                    for (int i = 0; i < crewJSONArray.length(); i++) {
-                        JSONObject crewJSON = crewJSONArray.optJSONObject(i);
-                        if (crewJSON != null) {
-                            if (movie.mCrew == null) movie.mCrew = new ArrayList<Crew>();
-                            Crew crew = new Crew();
-                            crew.job = crewJSON.optString("job");
-                            crew.credit_id = crewJSON.optString("credit_id");
-                            crew.id = crewJSON.optInt("id");
-                            crew.name = crewJSON.optString("name");
-                            crew.department = crewJSON.optString("department");
-                            crew.profile_path = crewJSON.optString("profile_path");
-                            movie.mCrew.add(crew);
+                        JSONArray crewJSONArray = creditsJSON.optJSONArray("crew");
+                        //Getting crew member
+                        for (int i = 0; i < crewJSONArray.length(); i++) {
+                            JSONObject crewJSON = crewJSONArray.optJSONObject(i);
+                            if (crewJSON != null) {
+                                if (movie.mCrew == null) movie.mCrew = new ArrayList<Crew>();
+                                Crew crew = new Crew();
+                                crew.job = crewJSON.optString("job");
+                                crew.credit_id = crewJSON.optString("credit_id");
+                                crew.id = crewJSON.optInt("id");
+                                crew.name = crewJSON.optString("name");
+                                crew.department = crewJSON.optString("department");
+                                crew.profile_path = crewJSON.optString("profile_path");
+                                movie.mCrew.add(crew);
+                            }
                         }
+                        if (movie.mCasts != null || movie.mCrew != null) {
+                            movie.movieInfosCompleted = true;
+                        }
+                        return movie;
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                    if (movie.mCasts != null || movie.mCrew != null) {
-                        movie.movieInfosCompleted = true;
-                    }
-                    return movie;
-                } catch (JSONException e) {
-                    e.printStackTrace();
                 }
                 return null;
             }

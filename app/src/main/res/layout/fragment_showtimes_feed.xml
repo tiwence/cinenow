@@ -18,17 +18,6 @@
     <include layout="@layout/reload_feed_layout"/>
 
     <com.getbase.floatingactionbutton.FloatingActionButton
-        android:id="@+id/favoritesFloatingButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        fab:fab_icon="@drawable/ic_fab_star"
-        fab:fab_colorNormal="@color/half_black"
-        fab:fab_colorPressed="@color/background"
-        android:layout_marginTop="10dp"
-        android:layout_toLeftOf="@+id/theatersFloatingButton"
-        android:layout_marginBottom="16dp"/>
-
-    <com.getbase.floatingactionbutton.FloatingActionButton
         android:id="@+id/theatersFloatingButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

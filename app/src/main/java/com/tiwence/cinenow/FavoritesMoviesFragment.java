@@ -7,6 +7,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
 import android.text.Html;
 import android.util.Log;
 import android.util.SparseBooleanArray;
@@ -46,13 +47,13 @@ import java.util.LinkedHashMap;
 /**
  * Created by temarill on 10/03/2015.
  */
-public class FavoritesFragment extends android.support.v4.app.Fragment implements View.OnClickListener, SwipeRefreshLayout.OnRefreshListener {
+public class FavoritesMoviesFragment extends android.support.v4.app.Fragment implements View.OnClickListener, SwipeRefreshLayout.OnRefreshListener {
 
     private View mRootView;
     private ExpandableListView mFavoritesListView;
     private ArrayList<Movie> mFavoritesList;
-    private LinkedHashMap<Movie, LinkedHashMap<MovieTheater, ArrayList<ShowTime>>> mData;
-    private LinkedHashMap<Movie, ArrayList<ShowTime>> mNextShowTimesFavorites;
+    private LinkedHashMap<Movie, LinkedHashMap<MovieTheater, ArrayList<ShowTime>>> mData = new LinkedHashMap<>();
+    private LinkedHashMap<Movie, ArrayList<ShowTime>> mNextShowTimesFavorites = new LinkedHashMap<Movie, ArrayList<ShowTime>>();;
     private boolean mIsOnModalChoice;
     private SwipeRefreshLayout mSwipeRefreshLayout;
 
@@ -74,6 +75,13 @@ public class FavoritesFragment extends android.support.v4.app.Fragment implement
         super.onResume();
         setupListView();
         loadData();
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(false);
+        ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
+        ((FeedActivity) getActivity()).getMActionBar().setDisplayShowTitleEnabled(true);
+        ((FeedActivity) getActivity()).getMActionBar().setTitle(R.string.action_favorites_movies);
+        ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
+        ((FeedActivity)getActivity()).getMActionBar()
+                .setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
     }
 
     /**
@@ -133,7 +141,7 @@ public class FavoritesFragment extends android.support.v4.app.Fragment implement
             protected void onPostExecute(Void aVoid) {
                 super.onPostExecute(aVoid);
                 mSwipeRefreshLayout.setRefreshing(false);
-                mFavoritesListView.setAdapter(new FavoritesListAdapter());
+                mFavoritesListView.setAdapter(new FavoritesMoviesListAdapter());
             }
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
@@ -239,7 +247,7 @@ public class FavoritesFragment extends android.support.v4.app.Fragment implement
     /**
      *
      */
-    public class FavoritesListAdapter extends BaseExpandableListAdapter {
+    public class FavoritesMoviesListAdapter extends BaseExpandableListAdapter {
 
         @Override
         public int getGroupCount() {
@@ -320,17 +328,24 @@ public class FavoritesFragment extends android.support.v4.app.Fragment implement
             movieInfosView.setText(movie.infos_g);
 
             nextShowTimesLayout.removeAllViews();
-            for (ShowTime st : mNextShowTimesFavorites.get(movie)) {
+            if(mNextShowTimesFavorites.get(movie) != null) {
+                for (ShowTime st : mNextShowTimesFavorites.get(movie)) {
+                    TextView tv = new TextView(getActivity());
+                    tv.setTextSize(15.0f);
+                    tv.setPadding(5, 5, 5, 5);
+                    tv.setText(Html.fromHtml(ApplicationUtils.getTimeString(st.mTimeRemaining)
+                            + " <strong>" + getResults().mTheaters.get(st.mTheaterId).mName + "</strong>"));
+                    tv.setTag(st);
+                    nextShowTimesLayout.addView(tv);
+                    tv.setOnClickListener(FavoritesMoviesFragment.this);
+                }
+            } else {
                 TextView tv = new TextView(getActivity());
                 tv.setTextSize(15.0f);
                 tv.setPadding(5, 5, 5, 5);
-                tv.setText(Html.fromHtml(ApplicationUtils.getTimeString(st.mTimeRemaining)
-                        + " <strong>" + getResults().mTheaters.get(st.mTheaterId).mName + "</strong>"));
-                tv.setTag(st);
+                tv.setText(getString(R.string.no_more_next_showtimes));
                 nextShowTimesLayout.addView(tv);
-                tv.setOnClickListener(FavoritesFragment.this);
             }
-            //movieTitleView.setText()
 
             return convertView;
         }
@@ -356,7 +371,7 @@ public class FavoritesFragment extends android.support.v4.app.Fragment implement
                 mTheaterNameTextView.setText(theater.mName + " (" + theater.mDistance + " km)");
             }
 
-            mTheaterNameTextView.setOnClickListener(FavoritesFragment.this);
+            mTheaterNameTextView.setOnClickListener(FavoritesMoviesFragment.this);
             ShowTime tempSt = new ShowTime();
             tempSt.mTheaterId = theater.mName;
             mTheaterNameTextView.setTag(tempSt);
@@ -369,7 +384,7 @@ public class FavoritesFragment extends android.support.v4.app.Fragment implement
                 stv.setText(st.mShowTimeStr);
                 stv.setPadding(8, 5, 8, 5);
                 stv.setTag(st);
-                stv.setOnClickListener(FavoritesFragment.this);
+                stv.setOnClickListener(FavoritesMoviesFragment.this);
                 flowLayout.addView(stv);
             }
 

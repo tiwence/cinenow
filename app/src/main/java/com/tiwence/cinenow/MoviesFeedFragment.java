@@ -11,14 +11,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateInterpolator;
-import android.view.animation.AlphaAnimation;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
 import com.squareup.picasso.Picasso;
@@ -29,8 +26,6 @@ import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
-
-import org.w3c.dom.Text;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -55,12 +50,15 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     private int mKindIndex;
     private String mIdSelected = "";
     private Bundle mySavedInstanceState;
+    private FeedActivity mFeedActivity;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_showtimes_feed, container, false);
-        mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.MOVIES_FILE_NAME);
+        //mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(mFeedActivity, ApplicationUtils.MOVIES_FILE_NAME);
+        mCachedMovies = ((FeedActivity)getActivity()).getCachedMovies();
+        mFavoriteMovies = (ArrayList<Movie>) ApplicationUtils.getDataInCache(mFeedActivity, ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
         //mResult = (ShowTimesFeed) getArguments().getSerializable("result");
 
         mySavedInstanceState = getArguments();
@@ -84,23 +82,8 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         mRootView.findViewById(R.id.theatersFloatingButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (getActivity() != null) {
-                    ((FeedActivity)getActivity()).displayTheatersFragment();
-                }
-            }
-        });
-
-        mRootView.findViewById(R.id.favoritesFloatingButton).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (getActivity() != null) {
-                    FavoritesFragment ff = new FavoritesFragment();
-                    getActivity().getSupportFragmentManager().beginTransaction()
-                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, ff)
-                            .addToBackStack(null)
-                            .commit();
+                if (mFeedActivity != null) {
+                    mFeedActivity.displayTheatersFragment();
                 }
             }
         });
@@ -120,7 +103,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     }
 
     public ShowTimesFeed getResults() {
-        return  ((FeedActivity)this.getActivity()).getResults();
+        return  mFeedActivity.getResults();
     }
 
     public void updateDataList() {
@@ -131,7 +114,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 mNextMovies = new ArrayList<>(this.getResults().getNextMovies());
                 Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
             }
-            mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item,
+            mFeedAdapter = new MoviesAdapter(mFeedActivity, R.layout.feed_item,
                     mNextMovies);
 
             mFeedContainer = (SwipeFlingAdapterView) mRootView.findViewById(R.id.frame);
@@ -150,10 +133,10 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                     Bundle b = new Bundle();
                     b.putString("movie_id",((Movie)(dataObject)).title);
                     mf.setArguments(b);
-                    getActivity().getSupportFragmentManager().beginTransaction()
+                    mFeedActivity.getSupportFragmentManager().beginTransaction()
                             .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                     android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, mf)
+                            .replace(R.id.mainContainer, mf, ((Movie)(dataObject)).title)
                             .addToBackStack(null)
                             .commit();
                     //Toast.makeText(getActivity(), "Clicked ! " + itemPosition, Toast.LENGTH_SHORT).show();
@@ -165,15 +148,18 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     @Override
     public void onResume() {
         super.onResume();
-        if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
+        if (mFeedActivity != null && mFeedActivity.getMActionBar() != null) {
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
-                    ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
-                    ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(false);
-                    if (mKindIndex != ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex()) {
-                        mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
+                    mFeedActivity.getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
+                    mFeedActivity.getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+                    mFeedActivity.getMActionBar().setDisplayHomeAsUpEnabled(false);
+                    if(mFeedActivity.getMenu() != null)
+                        mFeedActivity.getMenu().findItem(R.id.action_refresh).setVisible(true);
+                    mFeedActivity.getMActionBar().setDisplayShowTitleEnabled(false);
+                    if (mKindIndex != mFeedActivity.getMActionBar().getSelectedNavigationIndex()) {
+                        mKindIndex = mFeedActivity.getMActionBar().getSelectedNavigationIndex();
                         filterFragment(mKindIndex);
                     }
                 }
@@ -187,7 +173,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     private void resetContainer() {
         if (mFeedContainer != null) {
             mNextMovies = new ArrayList<Movie>();
-            mFeedAdapter = new MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
+            mFeedAdapter = new MoviesAdapter(mFeedActivity, R.layout.feed_item, mNextMovies);
             mRootView.findViewById(R.id.reloadLayout).setVisibility(View.INVISIBLE);
             mFeedContainer.setAdapter(mFeedAdapter);
             mFeedContainer.setFlingListener(this);
@@ -215,16 +201,15 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
 
         Collections.sort(mNextMovies, Movie.MovieDistanceComparator);
 
-        logMovies("Next movies");
-
-        mySavedInstanceState.putSerializable("nextMovies", mNextMovies);
+        if (mySavedInstanceState != null)
+            mySavedInstanceState.putSerializable("nextMovies", mNextMovies);
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 //Reload
                 if (mNextMovies != null && mFeedContainer != null) {
-                    mFeedAdapter = new MoviesFeedFragment.MoviesAdapter(getActivity(), R.layout.feed_item, mNextMovies);
+                    mFeedAdapter = new MoviesFeedFragment.MoviesAdapter(mFeedActivity, R.layout.feed_item, mNextMovies);
                     Log.d("MoviesFeedFragment", "UPDATEDATALIST FILTER WITH INDEX" + kindIndex);
 
                     mRootView.findViewById(R.id.reloadLayout).setVisibility(View.INVISIBLE);
@@ -253,6 +238,11 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
 
     @Override
     public void onLeftCardExit(Object dataObject) {
+        if (mFavoriteMovies == null) mFavoriteMovies = new ArrayList<>();
+        if (mFavoriteMovies.contains((Movie)dataObject)) {
+            mFavoriteMovies.remove((Movie) dataObject);
+            ApplicationUtils.saveDataInCache(mFeedActivity, mFavoriteMovies, ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
+        }
     }
 
     @Override
@@ -260,9 +250,15 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         if (mFavoriteMovies == null) mFavoriteMovies = new ArrayList<>();
         if (!mFavoriteMovies.contains((Movie)dataObject)) {
             mFavoriteMovies.add((Movie)dataObject);
-            ApplicationUtils.saveDataInCache(getActivity(), mFavoriteMovies, ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
+            ApplicationUtils.saveDataInCache(mFeedActivity, mFavoriteMovies, ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
         }
 
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        mFeedActivity = (FeedActivity) activity;
     }
 
     @Override
@@ -271,9 +267,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         mFeedAdapter.notifyDataSetChanged();
         if (mNextMovies == null || mNextMovies.size() == 0)
             mRootView.findViewById(R.id.reloadLayout).setVisibility(View.VISIBLE);
-        //Log.d("LIST", "notified");
         i++;
-
     }
 
     @Override
@@ -339,7 +333,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                 for (int i = 0; i < sts.size(); i++) {
                     ShowTime s = sts.get(i);
                     if (!s.mId.equals(bst.mId)) {
-                        TextView tv = new TextView(getActivity());
+                        TextView tv = new TextView(mFeedActivity);
                         tv.setTextColor(Color.WHITE);
                         tv.setTextSize(14.0f);
                         tv.setPadding(5, 5, 5, 5);
@@ -372,7 +366,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                                     public void onRetrieveMovieMoreInfosCompleted(Movie _movie) {
                                         movie.overview = _movie.overview;
                                         getResults().mMovies.put(movie.title, movie);
-                                        ApplicationUtils.saveDataInCache(getActivity(), getResults().mMovies, ApplicationUtils.MOVIES_FILE_NAME);
+                                        ApplicationUtils.saveDataInCache(mFeedActivity, getResults().mMovies, ApplicationUtils.MOVIES_FILE_NAME);
                                         ref.get().setText(movie.overview);
                                         ((TextView)mFeedContainer.getSelectedView().findViewById(R.id.feedMovieOverviewTextView)).setText(movie.overview);
                                         ((TextView)mFeedContainer.getSelectedView().findViewById(R.id.feedMovieOverviewTextView)).invalidate();
@@ -409,12 +403,12 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
             if (getResults().mMovies.get(bst.mMovieId).poster_path != null &&
                     !getResults().mMovies.get(bst.mMovieId).poster_path.equals("")) {
                 String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + getResults().mMovies.get(bst.mMovieId).poster_path;
-                Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
+                Picasso.with(mFeedActivity).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else if (mCachedMovies != null && mCachedMovies.containsKey(bst.mMovieId)
                     && mCachedMovies.get(bst.mMovieId).poster_path != null
                     && !mCachedMovies.get(bst.mMovieId).poster_path.equals("")) {
                 String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + mCachedMovies.get(bst.mMovieId).poster_path;
-                Picasso.with(getActivity()).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
+                Picasso.with(mFeedActivity).load(posterPath).placeholder(R.drawable.poster_placeholder).into(vh.mPoster);
             } else {
                 final WeakReference<ImageView> imgViewRef = new WeakReference<ImageView>(vh.mPoster);
                 ApiUtils.instance().retrieveMovieInfo(getResults().mMovies.get(bst.mMovieId), new OnRetrieveMovieInfoCompleted() {
@@ -423,7 +417,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                         getResults().mMovies.put(movie.title, movie);
                         String posterPath = ApiUtils.MOVIE_DB_POSTER_ROOT_URL + movie.poster_path;
                         if (imgViewRef != null && imgViewRef.get() != null)
-                            Picasso.with(getActivity()).load(posterPath)
+                            Picasso.with(mFeedActivity).load(posterPath)
                                     .placeholder(R.drawable.poster_placeholder).into(imgViewRef.get());
                     }
 
@@ -440,7 +434,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         @Override
         public void onClick(View v) {
             if (v.getTag() != null) {
-                ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
+                mFeedActivity.showTheaterChoiceFragment((ShowTime) v.getTag());
             }
         }
 

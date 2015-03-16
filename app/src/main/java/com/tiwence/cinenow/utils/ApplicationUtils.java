@@ -24,6 +24,8 @@ public class ApplicationUtils {
     public static final String MOVIES_FILE_NAME = "movies";
     public static final String THEATERS_FILE_NAME = "theaters";
     public static final String FAVORITES_MOVIES_FILE_NAME = "favorites_movies";
+    public static final String SHOWTIMES_FEED_FILE_NAME = "showtimes_feed";
+    public static final String FAVORITES_THEATERS_FILE_NAME = "favorites_theaters" ;
 
     /**
      * @param context

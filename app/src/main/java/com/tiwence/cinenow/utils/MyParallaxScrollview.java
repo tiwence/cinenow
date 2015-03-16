@@ -22,7 +22,7 @@ public class MyParallaxScrollview extends ParallaxScrollView {
         super(context);
     }
 
-    private OnScrollViewListener mOnScrollViewListener;
+    /*private OnScrollViewListener mOnScrollViewListener;
 
     public void setOnScrollViewListener(OnScrollViewListener l) {
         this.mOnScrollViewListener = l;
@@ -34,7 +34,7 @@ public class MyParallaxScrollview extends ParallaxScrollView {
 
     @Override
     protected void onScrollChanged(int l, int t, int oldl, int oldt) {
-        mOnScrollViewListener.onScrollChanged(this, l, t, oldl, oldt);
+        //mOnScrollViewListener.onScrollChanged(this, l, t, oldl, oldt);
         super.onScrollChanged(l, t, oldl, oldt);
-    }
+    }*/
 }

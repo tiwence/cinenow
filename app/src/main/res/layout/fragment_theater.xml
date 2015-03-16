@@ -3,17 +3,34 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:layout_marginTop="?android:attr/actionBarSize">
-
-    <android.support.v4.widget.SwipeRefreshLayout
-        android:id="@+id/swipeRefreshTheater"
+    android:layout_marginTop="?android:attr/actionBarSize"
+    xmlns:fab="http://schemas.android.com/apk/res-auto">
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content">
 
-        <ListView
+        <android.support.v4.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefreshTheater"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/listViewTheater"/>
+            android:layout_height="match_parent">
 
-    </android.support.v4.widget.SwipeRefreshLayout>
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/listViewTheater"/>
+
+        </android.support.v4.widget.SwipeRefreshLayout>
+        <com.getbase.floatingactionbutton.FloatingActionButton
+            android:id="@+id/favoritesFloatingButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            fab:fab_icon="@drawable/ic_fab_star"
+            fab:fab_colorNormal="@color/half_black"
+            fab:fab_colorPressed="@color/background"
+            android:layout_marginBottom="16dp"
+            android:layout_marginRight="10dp"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"/>
+    </RelativeLayout>
+
 </LinearLayout>

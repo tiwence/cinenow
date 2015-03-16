@@ -76,8 +76,10 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
     public void onResume() {
         super.onResume();
         if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
+            ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(true);
             ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
             ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+            ((FeedActivity) getActivity()).getMActionBar().setDisplayShowTitleEnabled(false);
             ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
             mKindIndex = ((FeedActivity) getActivity()).getMActionBar().getSelectedNavigationIndex();
             filterFragment(mKindIndex);

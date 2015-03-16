@@ -2,12 +2,17 @@ package com.tiwence.cinenow;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.location.Location;
 import android.location.LocationListener;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.PersistableBundle;
+import android.support.v4.app.ActionBarDrawerToggle;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
@@ -21,6 +26,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.ListView;
 import android.widget.SpinnerAdapter;
 import android.widget.Toast;
 
@@ -33,6 +39,7 @@ import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
 import com.tiwence.cinenow.listener.OnSelectChoiceListener;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
+import com.tiwence.cinenow.model.NavDrawerItem;
 import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
@@ -74,8 +81,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     private ActionBar mActionBar;
 
-    private static final int REFRESH_LOCATION_TIMEOUT = 15000;
-
     /**
      * Text watcher used to search movies or theaters
      */
@@ -106,27 +111,52 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     };
 
+    private Menu mMenu;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_ACTION_BAR_OVERLAY);
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.splash_screen);
+        //setContentView(R.layout.splash_screen);
+
+        setContentView(R.layout.activity_main);
 
         mActionBar = getSupportActionBar();
         mActionBar.hide();
         mActionBar.setTitle("");
-
-        //mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        //mLocation = mLocationManager.getLastKnownLocation(getProviderName());
+        mActionBar.setIcon(R.drawable.ic_launcher);
 
         mMoviesCached = (LinkedHashMap<String, Movie>) ApplicationUtils.getDataInCache(this, ApplicationUtils.MOVIES_FILE_NAME);
         mTheatersCached = (LinkedHashMap<String, MovieTheater>) ApplicationUtils.getDataInCache(this, ApplicationUtils.THEATERS_FILE_NAME);
-
-        mResult = new ShowTimesFeed();
-        mResult.mTheaters = mTheatersCached;
-        mResult.mMovies = mMoviesCached;
+        mResult = (ShowTimesFeed) ApplicationUtils.getDataInCache(this, ApplicationUtils.SHOWTIMES_FEED_FILE_NAME);
 
         refreshLocation();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putSerializable("results", mResult);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (mResult != null && mMoviesFeedFragment == null) {
+            displayResult();
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        if (savedInstanceState != null) {
+            mResult = (ShowTimesFeed) savedInstanceState.get("results");
+            if (mResult != null) {
+                displayResult();
+            }
+        }
     }
 
     static void makeToast(Context ctx, String s) {
@@ -137,6 +167,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        mMenu = menu;
 
         mSearchItem = menu.findItem(R.id.action_search);
         mEditSearch = (AutoCompleteTextView) MenuItemCompat.getActionView(mSearchItem);
@@ -167,18 +199,49 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         return this.mResult;
     }
 
+    public Menu getMenu() { return this.mMenu; }
+
+    public Fragment getActiveFragment() {
+        if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+            return null;
+        }
+        List<Fragment> fragments = getSupportFragmentManager().getFragments();
+        String tag = fragments.get(getSupportFragmentManager().getBackStackEntryCount() - 1).getTag();
+        return getSupportFragmentManager().findFragmentByTag(tag);
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
         switch (itemId) {
             case android.R.id.home:
-                if (mTheatersFragment != null && mTheatersFragment.isVisible())
-                    mTheatersFragment.getActivity().getSupportFragmentManager().popBackStack();
+                Fragment activeFragment = getActiveFragment();
+                if (activeFragment != null) {
+                    activeFragment.getActivity().getSupportFragmentManager().popBackStack();
+                }
                 break;
             case R.id.action_settings:
                 return true;
             case R.id.action_refresh:
                 refresh();
+                break;
+            case R.id.action_favorites_movies:
+                FavoritesMoviesFragment fm = new FavoritesMoviesFragment();
+                this.getSupportFragmentManager().beginTransaction()
+                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                        .replace(R.id.mainContainer, fm, "favorites_movies")
+                        .addToBackStack(null)
+                        .commit();
+                break;
+            case R.id.action_favorites_theaters:
+                FavoritesTheatersFragment ft = new FavoritesTheatersFragment();
+                this.getSupportFragmentManager().beginTransaction()
+                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                        .replace(R.id.mainContainer, ft, "favorites_theaters")
+                        .addToBackStack(null)
+                        .commit();
                 break;
             default:
                 break;
@@ -197,7 +260,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         getSupportFragmentManager().beginTransaction()
                 .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                         android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                .replace(R.id.mainContainer, mTheatersFragment)
+                .replace(R.id.mainContainer, mTheatersFragment, "theaters")
                 .addToBackStack(null)
                 .commit();
     }
@@ -245,25 +308,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     }
 
     /**
-     * Get provider name.
-     *
-     * @return Name of best suiting provider.
-     */
-    /*private String getProviderName() {
-        Criteria c = new Criteria();
-        c.setAccuracy(Criteria.ACCURACY_COARSE);
-        c.setAltitudeRequired(false);
-        c.setBearingRequired(false);
-        c.setSpeedRequired(false);
-        c.setCostAllowed(true);
-        c.setPowerRequirement(Criteria.POWER_HIGH);
-
-        String provider = mLocationManager.getBestProvider(c, true);
-        Log.d("PROVIDER", provider);
-        return provider;
-    }*/
-
-    /**
      *
      */
     private void requestData() {
@@ -271,42 +315,52 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             @Override
             public void onRetrieveShowTimesCompleted(ShowTimesFeed result) {
                 mResult = result;
-                ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
-                updateFilters();
-                if (mMoviesFeedFragment != null)
-                    mMoviesFeedFragment.updateDataList();
-                if (mTheatersFragment != null)
-                    mTheatersFragment.updateDataList(0);
-                if (mMoviesFeedFragment == null && mTheatersFragment == null)
-                    displayMoviesFeed();
-
-                //For udpating showtimes time remaining
-                launchingTimerTask();
-
-                ApiUtils.instance().retrieveMoviesInfo(FeedActivity.this, result.mMovies, new OnRetrieveMoviesInfoCompleted() {
-                    @Override
-                    public void onProgressMovieInfoCompleted(Movie movie) {
-                        //mResult.mMovies.put(movie.id_g, movie);
-                        //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
-                    }
-
-                    @Override
-                    public void onRetrieveMoviesInfoCompleted(LinkedHashMap<String, Movie> movies) {
-                        mResult.mMovies = movies;
-                        ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mMovies, ApplicationUtils.MOVIES_FILE_NAME);
-                        //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
-                    }
-
-                    @Override
-                    public void onRetrieveMoviesError(String message) {
-                        Toast.makeText(FeedActivity.this, message, Toast.LENGTH_LONG).show();
-                    }
-                });
+                displayResult();
             }
 
             @Override
             public void onRetrieveShowTimesError(String errorMessage) {
                 Toast.makeText(FeedActivity.this, errorMessage, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    /**
+     *
+     */
+    private void displayResult() {
+        ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
+        ApplicationUtils.saveDataInCache(FeedActivity.this, mResult, ApplicationUtils.SHOWTIMES_FEED_FILE_NAME);
+        updateFilters();
+        if (mMoviesFeedFragment != null)
+            mMoviesFeedFragment.updateDataList();
+        if (mTheatersFragment != null)
+            mTheatersFragment.updateDataList(0);
+        if (mMoviesFeedFragment == null && mTheatersFragment == null)
+            displayMoviesFeed();
+
+        //For udpating showtimes time remaining
+        launchingTimerTask();
+
+        ApiUtils.instance().retrieveMoviesInfo(FeedActivity.this, mResult.mMovies, new OnRetrieveMoviesInfoCompleted() {
+            @Override
+            public void onProgressMovieInfoCompleted(Movie movie) {
+                //mResult.mMovies.put(movie.id_g, movie);
+                //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
+            }
+
+            @Override
+            public void onRetrieveMoviesInfoCompleted(LinkedHashMap<String, Movie> movies) {
+                mResult.mMovies = movies;
+                ApplicationUtils.saveDataInCache(FeedActivity.this, mResult.mMovies, ApplicationUtils.MOVIES_FILE_NAME);
+                mMoviesCached = (LinkedHashMap<String, Movie>) ApplicationUtils
+                        .getDataInCache(FeedActivity.this, ApplicationUtils.MOVIES_FILE_NAME);
+                //((TheaterAdapter)mListView.getAdapter()).notifyDataSetChanged();
+            }
+
+            @Override
+            public void onRetrieveMoviesError(String message) {
+                Toast.makeText(FeedActivity.this, message, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -342,18 +396,24 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
      */
     private void displayMoviesFeed() {
         mActionBar.show();
-        setContentView(R.layout.activity_main);
-
+        findViewById(R.id.splashScreen).setVisibility(View.GONE);
         //new Handler().post(new Runnable() {
             //@Override
           //  public void run() {
-                mMoviesFeedFragment = new MoviesFeedFragment();
-                Bundle b = new Bundle();
-                b.putSerializable("result", mResult);
-                mMoviesFeedFragment.setArguments(b);
-                getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.mainContainer, mMoviesFeedFragment)
-                        .commit();
+
+        try {
+            mMoviesFeedFragment = new MoviesFeedFragment();
+            Bundle b = new Bundle();
+            b.putSerializable("results", mResult);
+            mMoviesFeedFragment.setArguments(b);
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.mainContainer, mMoviesFeedFragment, "feeds")
+                    .commit();
+        } catch (IllegalStateException e) {
+            mMoviesFeedFragment = null;
+            e.printStackTrace();
+        }
+
            // }
         //});
     }
@@ -365,7 +425,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         mActionBar.setDisplayShowTitleEnabled(false);
         mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
         mResult.mMovieKinds = getMovieKindsList(mResult.mNextMovies);
-        Log.d("FeedActivity", "Kinds : " + mResult.mMovieKinds.toString());
         mMoviesKindAdapter = new ArrayAdapter(this, R.layout.kind_item, mResult.mMovieKinds);
         mActionBar.setListNavigationCallbacks(mMoviesKindAdapter, this);
     }
@@ -511,7 +570,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     getSupportFragmentManager().beginTransaction()
                             .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                     android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, mf)
+                            .replace(R.id.mainContainer, mf, movie.title)
                             .addToBackStack(null)
                             .commit();
 
@@ -528,7 +587,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     getSupportFragmentManager().beginTransaction()
                             .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                     android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, tf)
+                            .replace(R.id.mainContainer, tf, theater.mName)
                             .addToBackStack(null)
                             .commit();
                 }
@@ -560,7 +619,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                 getSupportFragmentManager().beginTransaction()
                         .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                 android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                        .replace(R.id.mainContainer, tf)
+                        .replace(R.id.mainContainer, tf, theater.mName)
                         .addToBackStack(null)
                         .commit();
                 break;
