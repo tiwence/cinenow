@@ -6,14 +6,14 @@
     android:layout_height="match_parent">
 
     <FrameLayout
-        android:id="@+id/mainContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".MainActivity"
-        tools:ignore="MergeRootFrame" />
+            android:id="@+id/mainContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:context=".MainActivity"
+            tools:ignore="MergeRootFrame" />
 
     <include layout="@layout/splash_screen"
-        android:id="@+id/splashScreen"></include>
+            android:id="@+id/splashScreen"></include>
 
 </android.support.v4.widget.DrawerLayout>
 

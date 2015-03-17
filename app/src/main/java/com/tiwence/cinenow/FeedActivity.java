@@ -2,17 +2,13 @@ package com.tiwence.cinenow;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.location.Location;
 import android.location.LocationListener;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.PersistableBundle;
-import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.MenuItemCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
@@ -26,7 +22,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.ListView;
 import android.widget.SpinnerAdapter;
 import android.widget.Toast;
 
@@ -39,7 +34,6 @@ import com.tiwence.cinenow.listener.OnRetrieveShowTimesCompleted;
 import com.tiwence.cinenow.listener.OnSelectChoiceListener;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
-import com.tiwence.cinenow.model.NavDrawerItem;
 import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
@@ -142,10 +136,9 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     @Override
     protected void onResume() {
         super.onResume();
-
-        if (mResult != null && mMoviesFeedFragment == null) {
+        /*if (mResult != null && mMoviesFeedFragment == null) {
             displayResult();
-        }
+        }*/
     }
 
     @Override
@@ -201,6 +194,10 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     public Menu getMenu() { return this.mMenu; }
 
+    /**
+     *
+     * @return
+     */
     public Fragment getActiveFragment() {
         if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
             return null;
@@ -223,7 +220,12 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             case R.id.action_settings:
                 return true;
             case R.id.action_refresh:
-                refresh();
+                //refresh();
+                if (mTheatersFragment != null && mTheatersFragment.isVisible()) {
+                    mTheatersFragment.onRefresh();
+                } else {
+                    refresh();
+                }
                 break;
             case R.id.action_favorites_movies:
                 FavoritesMoviesFragment fm = new FavoritesMoviesFragment();
@@ -250,6 +252,9 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     *
+     */
     protected void displayTheatersFragment() {
         mTheatersFragment = new TheatersFragment();
         Bundle b = new Bundle();
@@ -321,6 +326,13 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             @Override
             public void onRetrieveShowTimesError(String errorMessage) {
                 Toast.makeText(FeedActivity.this, errorMessage, Toast.LENGTH_LONG).show();
+                if (mResult == null) mResult = new ShowTimesFeed();
+                if (mResult.mTheaters == null) mResult.mTheaters = new LinkedHashMap<String, MovieTheater>();
+                if (mResult.mMovies == null) mResult.mMovies = new LinkedHashMap<String, Movie>();
+                if (mResult.mNextShowTimes == null) mResult.mNextShowTimes = new ArrayList<ShowTime>();
+                if (mResult.mShowTimes == null) mResult.mShowTimes = new LinkedHashMap<String, ShowTime>();
+                if (mResult.mNextMovies == null) mResult.mNextMovies = new ArrayList<Movie>();
+                displayResult();
             }
         });
     }
@@ -341,7 +353,10 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
         //For udpating showtimes time remaining
         launchingTimerTask();
+        requestMoviesData();
+    }
 
+    private void requestMoviesData() {
         ApiUtils.instance().retrieveMoviesInfo(FeedActivity.this, mResult.mMovies, new OnRetrieveMoviesInfoCompleted() {
             @Override
             public void onProgressMovieInfoCompleted(Movie movie) {
@@ -364,7 +379,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
             }
         });
     }
-
 
     Timer mTimer;
     /**
@@ -533,6 +547,8 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
      */
     public void refresh() {
         mIsFirstLocation = true;
+        if (mMoviesFeedFragment != null && mMoviesFeedFragment.isVisible())
+            mMoviesFeedFragment.setRefreshing(true);
         refreshLocation();
     }
 

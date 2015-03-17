@@ -8,26 +8,29 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
-import android.widget.ExpandableListView;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.tiwence.cinenow.adapter.ShowtimeAdapter;
 import com.tiwence.cinenow.adapter.TheaterDistanceHelper;
+import com.tiwence.cinenow.listener.OnRetrieveTheaterShowTimeInfoCompleted;
 import com.tiwence.cinenow.listener.OnSelectChoiceListener;
 import com.tiwence.cinenow.model.Movie;
 import com.tiwence.cinenow.model.MovieTheater;
+import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
+import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+
+import it.sephiroth.android.library.widget.HListView;
 
 /**
  * Created by temarill on 16/03/2015.
@@ -43,10 +46,10 @@ public class FavoritesTheatersFragment extends Fragment implements SwipeRefreshL
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        mRootView = inflater.inflate(R.layout.fragment_theater, container, false);
-        mRootView.findViewById(R.id.favoritesFloatingButton).setVisibility(View.GONE);
-        mFavoritesListView = (ListView) mRootView.findViewById(R.id.listViewTheater);
-        mSwipeRefreshLayout = (SwipeRefreshLayout) mRootView.findViewById(R.id.swipeRefreshTheater);
+        mRootView = inflater.inflate(R.layout.fragment_theaters, container, false);
+
+        mFavoritesListView = (ListView) mRootView.findViewById(R.id.listView);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) mRootView.findViewById(R.id.swipeRefresh);
         mSwipeRefreshLayout.setOnRefreshListener(this);
 
         mLocation = ((FeedActivity)getActivity()).getLocation();
@@ -65,6 +68,8 @@ public class FavoritesTheatersFragment extends Fragment implements SwipeRefreshL
         super.onResume();
         setupListView();
         ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(false);
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_movies).setVisible(true);
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_theaters).setVisible(false);
         ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
         ((FeedActivity) getActivity()).getMActionBar().setDisplayShowTitleEnabled(true);
         ((FeedActivity) getActivity()).getMActionBar().setTitle(R.string.action_favorites_theaters);
@@ -79,15 +84,22 @@ public class FavoritesTheatersFragment extends Fragment implements SwipeRefreshL
                 .getDataInCache(getActivity(), ApplicationUtils.FAVORITES_THEATERS_FILE_NAME);
         if (mFavoritesList == null)
             mFavoritesList = new ArrayList<>();
+        //Adding favorites to the main dataset
+        for (MovieTheater theater : mFavoritesList) {
+            if (getResults().mTheaters.get(theater.mName) == null) {
+                getResults().mTheaters.put(theater.mName, theater);
+            }
+        }
+
         mFavoritesListView.setAdapter(new FavoritesTheatersAdapter());
 
-        mFavoritesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        /*mFavoritesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 TheaterFragment tf = new TheaterFragment();
                 Bundle b = new Bundle();
                 MovieTheater theater = mFavoritesList.get(position);
-                b.putString("theater_id", theater.mName);
+                b.putSerializable("theater", theater);
                 tf.setArguments(b);
                 getActivity().getSupportFragmentManager().beginTransaction()
                         .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
@@ -96,7 +108,7 @@ public class FavoritesTheatersFragment extends Fragment implements SwipeRefreshL
                         .addToBackStack(null)
                         .commit();
             }
-        });
+        });*/
         mSwipeRefreshLayout.setRefreshing(false);
     }
 
@@ -109,7 +121,8 @@ public class FavoritesTheatersFragment extends Fragment implements SwipeRefreshL
     @Override
     public void onClick(View v) {
         if (v.getTag() != null) {
-            mSelectChoiceListener.onSelectedChoice((String)v.getTag(), null, 1);
+            //mSelectChoiceListener.onSelectedChoice((String)v.getTag(), null, 0);
+            ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
         }
     }
 
@@ -139,34 +152,67 @@ public class FavoritesTheatersFragment extends Fragment implements SwipeRefreshL
             ViewHolder vh = null;
             MovieTheater theater = mFavoritesList.get(position);
             if (convertView == null) {
-                convertView = getActivity().getLayoutInflater().inflate(R.layout.header_theater_item, null);
+                convertView = getActivity().getLayoutInflater().inflate(R.layout.theater_item, null);
                 vh = new ViewHolder();
-                vh.theaterHeaderMapIcon = (ImageView) convertView.findViewById(R.id.theaterImagePlaceholder);
-                vh.theaterName = (TextView) convertView.findViewById(R.id.theaterFragmentName);
-                vh.theaterInfos = (TextView) convertView.findViewById(R.id.theaterFragmentInfo);
-                vh.theaterDistance = (TextView) convertView.findViewById(R.id.theaterFragmentDistance);
+                vh.mTheaterName = (TextView) convertView.findViewById(R.id.theaterNameText);
+                vh.mHListView = (HListView) convertView.findViewById(R.id.hListView);
                 convertView.setTag(vh);
             }
             vh = (ViewHolder) convertView.getTag();
-            vh.theaterName.setText(theater.mName);
-            vh.theaterInfos.setText(theater.mAddress);
-            vh.theaterHeaderMapIcon.setTag(theater.mName);
-            vh.theaterHeaderMapIcon.setOnClickListener(FavoritesTheatersFragment.this);
-            if (theater.mDistance >= 1000 || theater.mDistance < 0) {
-                final WeakReference<TextView> distanceRef = new WeakReference<TextView>(vh.theaterDistance);
-                new TheaterDistanceHelper(mLocation, getResults(), distanceRef, false)
-                        .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, theater);
+
+            final MovieTheater mt = mFavoritesList.get(position);
+            if (mt.mDistance >= 1000 || mt.mDistance < 0) {
+                final WeakReference<TextView> distanceRef = new WeakReference<TextView>(vh.mTheaterName);
+                new TheaterDistanceHelper(mLocation, getResults(), distanceRef, true)
+                        .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mt);
             } else {
-                vh.theaterDistance.setText(theater.mDistance + " km");
+                vh.mTheaterName.setText(mt.mName + " (" + mt.mDistance + " km)");
             }
+            ShowTime stTemp = new ShowTime();
+            stTemp.mTheaterId = mt.mName;
+            vh.mTheaterName.setTag(stTemp);
+            vh.mTheaterName.setOnClickListener(FavoritesTheatersFragment.this);
+            ArrayList<ShowTime> showTimes = getResults().getNextShowTimesByTheaterId(mt.mName);
+            if (showTimes != null && !showTimes.isEmpty()) {
+                vh.mHListView.setAdapter(new ShowtimeAdapter(getActivity(), showTimes));
+            } else {
+                ApiUtils.instance().retrieveShowTimesTheaterInfos(getActivity(), theater, new OnRetrieveTheaterShowTimeInfoCompleted() {
+                    @Override
+                    public void onRetrieveTheaterShowTimeInfoCompleted(LinkedHashMap<Movie, ArrayList<ShowTime>> dataset) {
+                        getResults().addNewTheaterInfos(mt, dataset);
+                        FavoritesTheatersAdapter.this.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onRetrieveTheaterShowTimeInfoError(String errorMessage) {
+
+                    }
+                });
+            }
+
+            vh.mHListView.setOnItemClickListener(new it.sephiroth.android.library.widget.AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(it.sephiroth.android.library.widget.AdapterView<?> adapterView, View view, int i, long l) {
+                    ShowTime st = getResults().getNextShowTimesByTheaterId(mt.mName).get(i);
+                    MovieFragment mf = new MovieFragment();
+                    Bundle b = new Bundle();
+                    b.putString("movie_id", st.mMovieId);
+                    mf.setArguments(b);
+                    getActivity().getSupportFragmentManager().beginTransaction()
+                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                            .replace(R.id.mainContainer, mf, st.mMovieId)
+                            .addToBackStack(null)
+                            .commit();
+                }
+            });
+
             return convertView;
         }
 
-        class ViewHolder {
-            ImageView theaterHeaderMapIcon;
-            TextView theaterName;
-            TextView theaterInfos;
-            TextView theaterDistance;
+        public class ViewHolder {
+            TextView mTheaterName;
+            HListView mHListView;
         }
 
     }

@@ -667,6 +667,8 @@ public class ApiUtils {
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
+    //public void retrieveShowTimesTheatersInfos(final Context context, LinkedHashMap<String, MovieTheater>)
+
     /**
      *  @param theater
      * @param listener

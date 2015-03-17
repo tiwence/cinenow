@@ -2,7 +2,6 @@ package com.tiwence.cinenow.utils;
 
 import android.content.Context;
 import android.location.Location;
-import android.util.Log;
 
 import com.tiwence.cinenow.model.MovieTheater;
 
@@ -32,7 +31,6 @@ public class TheatersUtils {
 
     public static void loadTheatersLocation(Context context) {
         try {
-            Log.d("Adding theaters", "start");
             InputStream inStr = context.getResources().getAssets().open("theaters.json");
             mTheatersArr = new JSONArray(HttpUtils.getStringFromInputStream(inStr));
             mTheatersLocations = new LinkedHashMap<>();
@@ -43,7 +41,6 @@ public class TheatersUtils {
                 l.setLongitude(theater.optDouble("lng"));
                 mTheatersLocations.put(theater.optString("Google"), l);
             }
-            Log.d("Adding theaters", "stop");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (JSONException e) {

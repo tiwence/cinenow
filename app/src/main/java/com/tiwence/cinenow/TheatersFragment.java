@@ -77,6 +77,8 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         super.onResume();
         if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
             ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(true);
+            ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_movies).setVisible(true);
+            ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_theaters).setVisible(true);
             ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
             ((FeedActivity)getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
             ((FeedActivity) getActivity()).getMActionBar().setDisplayShowTitleEnabled(false);
@@ -87,6 +89,7 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
     }
 
     public void updateDataList(int kindIndex) {
+        mSwipeRefresh.setRefreshing(false);
         mKindIndex = kindIndex;
         filterFragment(mKindIndex);
     }
@@ -123,12 +126,16 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
                 int totalNbST = 0;
                 for (MovieTheater theater : mTheaters) {
                     totalNbST = 0;
-                    for (ShowTime st : this.getResults().getNextShowTimesByTheaterId(theater.mName)) {
-                        if (getResults().mMovies.get(st.mMovieId).kind != null &&
-                                getResults().mMovies.get(st.mMovieId).kind.equals(getResults().mMovieKinds.get(mKindIndex))) {
-                            totalNbST ++;
+                    if (this.getResults() != null && theater.mName != null
+                            && this.getResults().getNextShowTimesByTheaterId(theater.mName) != null) {
+                        for (ShowTime st : this.getResults().getNextShowTimesByTheaterId(theater.mName)) {
+                            if (getResults().mMovies.get(st.mMovieId).kind != null &&
+                                    getResults().mMovies.get(st.mMovieId).kind.equals(getResults().mMovieKinds.get(mKindIndex))) {
+                                totalNbST ++;
+                            }
                         }
                     }
+
                     if (totalNbST > 0) {
                         filteredTheaters.add(theater);
                     }

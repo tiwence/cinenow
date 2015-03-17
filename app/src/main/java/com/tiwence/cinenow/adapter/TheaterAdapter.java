@@ -1,6 +1,5 @@
 package com.tiwence.cinenow.adapter;
 
-import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -15,8 +14,6 @@ import com.tiwence.cinenow.R;
 import com.tiwence.cinenow.TheatersFragment;
 import com.tiwence.cinenow.model.MovieTheater;
 import com.tiwence.cinenow.model.ShowTime;
-import com.tiwence.cinenow.utils.ApiUtils;
-import com.tiwence.cinenow.utils.TheatersUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;

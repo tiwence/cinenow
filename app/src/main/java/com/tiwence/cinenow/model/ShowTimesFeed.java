@@ -36,18 +36,19 @@ public class ShowTimesFeed implements Serializable {
 
     public void filterNewNextShowTimes() {
         ArrayList<ShowTime> newNextShowTimes = new ArrayList<>();
-        for (Iterator<String> it = mShowTimes.keySet().iterator(); it.hasNext();) {
-            String idStKey = it.next();
-            ShowTime st = mShowTimes.get(idStKey);
-            int timeRemaining = ApplicationUtils.getTimeRemaining(st.mShowTimeStr);
-            if (timeRemaining > 0 && timeRemaining < 95) {
-                st.mTimeRemaining = timeRemaining;
-                newNextShowTimes.add(st);
+        if (mShowTimes != null) {
+            for (Iterator<String> it = mShowTimes.keySet().iterator(); it.hasNext();) {
+                String idStKey = it.next();
+                ShowTime st = mShowTimes.get(idStKey);
+                int timeRemaining = ApplicationUtils.getTimeRemaining(st.mShowTimeStr);
+                if (timeRemaining > 0 && timeRemaining < 95) {
+                    st.mTimeRemaining = timeRemaining;
+                    newNextShowTimes.add(st);
+                }
             }
+            Collections.sort(newNextShowTimes, ShowTime.ShowTimeComparator);
+            mNextShowTimes = newNextShowTimes;
         }
-
-        Collections.sort(newNextShowTimes, ShowTime.ShowTimeComparator);
-        mNextShowTimes = newNextShowTimes;
     }
 
     public ArrayList<ShowTime> getNextShowTimesByTheaterId(String theaterId) {
@@ -75,9 +76,13 @@ public class ShowTimesFeed implements Serializable {
         return showTimes;
     }
 
+    /**
+     *
+     * @param movieId
+     * @return
+     */
     public LinkedHashMap<MovieTheater, ArrayList<ShowTime>> getShowTimesByTheatersForMovie(String movieId) {
         LinkedHashMap<MovieTheater, ArrayList<ShowTime>> dataset = new LinkedHashMap<>();
-        Log.d("SHOWTIMES SIZE", "" + mShowTimes.size() + " MOVIE ID " + movieId);
 
         for (Iterator<String> it = mShowTimes.keySet().iterator(); it.hasNext();) {
             String key = it.next();
@@ -98,6 +103,11 @@ public class ShowTimesFeed implements Serializable {
         return dataset;
     }
 
+    /**
+     *
+     * @param theaterId
+     * @return
+     */
     public LinkedHashMap<Movie, ArrayList<ShowTime>> getShowTimesByMoviesForTheater(String theaterId) {
         LinkedHashMap<Movie, ArrayList<ShowTime>> dataset = new LinkedHashMap<>();
         ArrayList<ShowTime> showTimes = getShowTimesByTheaterId(theaterId);

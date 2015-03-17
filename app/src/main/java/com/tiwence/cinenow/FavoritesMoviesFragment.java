@@ -76,6 +76,8 @@ public class FavoritesMoviesFragment extends android.support.v4.app.Fragment imp
         setupListView();
         loadData();
         ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(false);
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_theaters).setVisible(true);
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_movies).setVisible(false);
         ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
         ((FeedActivity) getActivity()).getMActionBar().setDisplayShowTitleEnabled(true);
         ((FeedActivity) getActivity()).getMActionBar().setTitle(R.string.action_favorites_movies);

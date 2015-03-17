@@ -7,38 +7,25 @@ import android.graphics.Color;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.AutoCompleteTextView;
 import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.squareup.picasso.Picasso;
-import com.tiwence.cinenow.adapter.SearchResultAdapter;
 import com.tiwence.cinenow.adapter.ShowtimeAdapter;
 import com.tiwence.cinenow.adapter.TheaterDistanceHelper;
 import com.tiwence.cinenow.listener.OnQueryResultClickListener;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
-import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveTheaterShowTimeInfoCompleted;
 import com.tiwence.cinenow.listener.OnSelectChoiceListener;
 import com.tiwence.cinenow.model.Movie;
@@ -53,8 +40,6 @@ import org.apmem.tools.layouts.FlowLayout;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
 
 import it.sephiroth.android.library.widget.HListView;
 
@@ -91,6 +76,8 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
             mCurrentTheater = getResult().mTheaters.get(getArguments().getString("theater_id"));
         } else if (getArguments().getSerializable("theater") != null){
             mCurrentTheater = (MovieTheater)getArguments().getSerializable("theater");
+            getResult().mTheaters.put(mCurrentTheater.mName, mCurrentTheater);
+            ApplicationUtils.saveDataInCache(getActivity(), getResult().mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
         }
 
         mCachedMovies = (LinkedHashMap<String, Movie>) ApplicationUtils
@@ -120,6 +107,8 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
         if (isFullyLoaded)
             refreshNextShowTimes();
         ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(false);
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_movies).setVisible(true);
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_theaters).setVisible(true);
         ((FeedActivity)getActivity()).getMActionBar()
                 .setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
         ((FeedActivity) getActivity()).getMActionBar().setDisplayShowTitleEnabled(false);
@@ -149,14 +138,14 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
         if(mFavoritesTheaters.contains(mCurrentTheater)) {
             mFavoritesButton.setIcon(R.drawable.ic_fab_star);
         } else {
-            mFavoritesButton.setIcon(R.drawable.ic_like);
+            mFavoritesButton.setIcon(R.drawable.ic_add_favorite);
         }
         mFavoritesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mFavoritesTheaters.contains(mCurrentTheater)) {
                     mFavoritesTheaters.remove(mCurrentTheater);
-                    mFavoritesButton.setIcon(R.drawable.ic_like);
+                    mFavoritesButton.setIcon(R.drawable.ic_add_favorite);
                 } else {
                     mFavoritesTheaters.add(mCurrentTheater);
                     mFavoritesButton.setIcon(R.drawable.ic_fab_star);
@@ -169,17 +158,19 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (position > 0) {
-                    Movie movie = ((TheaterAdapter.ViewHolder)view.getTag()).mMovie;
-                    MovieFragment mf = new MovieFragment();
-                    Bundle b = new Bundle();
-                    b.putString("movie_id", movie.title);
-                    mf.setArguments(b);
-                    getActivity().getSupportFragmentManager().beginTransaction()
-                            .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                    android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, mf, movie.title)
-                            .addToBackStack(null)
-                            .commit();
+                    if (view.getTag() != null) {
+                        Movie movie = ((TheaterAdapter.ViewHolder)view.getTag()).mMovie;
+                        MovieFragment mf = new MovieFragment();
+                        Bundle b = new Bundle();
+                        b.putString("movie_id", movie.title);
+                        mf.setArguments(b);
+                        getActivity().getSupportFragmentManager().beginTransaction()
+                                .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
+                                        android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+                                .replace(R.id.mainContainer, mf, movie.title)
+                                .addToBackStack(null)
+                                .commit();
+                    }
                 }
             }
         });

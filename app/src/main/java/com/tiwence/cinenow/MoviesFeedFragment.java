@@ -92,8 +92,9 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        mFeedActivity = (FeedActivity) activity;
     }
 
     @Override
@@ -107,7 +108,7 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     }
 
     public void updateDataList() {
-        //Adding feed view
+        this.setRefreshing(false);
         if (this.getResults().mNextMovies != null && this.getResults().mNextMovies.size() > 0) {
             //ActionBar spinner adapter
             if (mNextMovies == null) {
@@ -155,8 +156,11 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
                     mFeedActivity.getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
                     mFeedActivity.getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
                     mFeedActivity.getMActionBar().setDisplayHomeAsUpEnabled(false);
-                    if(mFeedActivity.getMenu() != null)
+                    if(mFeedActivity.getMenu() != null) {
                         mFeedActivity.getMenu().findItem(R.id.action_refresh).setVisible(true);
+                        mFeedActivity.getMenu().findItem(R.id.action_favorites_theaters).setVisible(true);
+                        mFeedActivity.getMenu().findItem(R.id.action_favorites_movies).setVisible(true);
+                    }
                     mFeedActivity.getMActionBar().setDisplayShowTitleEnabled(false);
                     if (mKindIndex != mFeedActivity.getMActionBar().getSelectedNavigationIndex()) {
                         mKindIndex = mFeedActivity.getMActionBar().getSelectedNavigationIndex();
@@ -223,10 +227,11 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     }
 
 
-    public void logMovies(String log) {
-        for (Movie m : mNextMovies) {
-            Log.d(log, m.title + ", " + m.mBestDistance + ", " + m.mFirstTimeRemaining);
-        }
+    public void setRefreshing(boolean isRefreshing) {
+        if (isRefreshing)
+            mRootView.findViewById(R.id.marker_progress).setVisibility(View.VISIBLE);
+        else
+            mRootView.findViewById(R.id.marker_progress).setVisibility(View.GONE);
     }
 
     @Override
@@ -256,12 +261,6 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        mFeedActivity = (FeedActivity) activity;
-    }
-
-    @Override
     public void onAdapterAboutToEmpty(int itemsInAdapter) {
         // Ask for more data here
         mFeedAdapter.notifyDataSetChanged();
@@ -278,7 +277,6 @@ public class MoviesFeedFragment extends android.support.v4.app.Fragment implemen
         if (view != null && view.findViewById(R.id.item_swipe_right_indicator) != null)
             view.findViewById(R.id.item_swipe_right_indicator).setAlpha(scrollProgressPercent < 0 ? -scrollProgressPercent : 0);
     }
-
 
     /**
      *

@@ -1,50 +1,28 @@
 package com.tiwence.cinenow;
 
 import android.app.Activity;
-import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
-import android.graphics.drawable.ShapeDrawable;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.Nullable;
-import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
-import android.text.Editable;
 import android.text.Html;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.AdapterView;
-import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
-import com.manuelpeinado.fadingactionbar.FadingActionBarHelper;
-import com.nirhart.parallaxscroll.views.ParallaxScrollView;
 import com.squareup.picasso.Picasso;
-import com.tiwence.cinenow.adapter.SearchResultAdapter;
 import com.tiwence.cinenow.adapter.TheaterDistanceHelper;
-import com.tiwence.cinenow.listener.OnQueryResultClickListener;
 import com.tiwence.cinenow.listener.OnRetrieveMovieCreditsCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieInfoCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieMoreInfosCompleted;
 import com.tiwence.cinenow.listener.OnRetrieveMovieShowTimesCompleted;
-import com.tiwence.cinenow.listener.OnRetrieveQueryCompleted;
 import com.tiwence.cinenow.model.Cast;
 import com.tiwence.cinenow.model.Crew;
 import com.tiwence.cinenow.model.Movie;
@@ -53,22 +31,17 @@ import com.tiwence.cinenow.model.ShowTime;
 import com.tiwence.cinenow.model.ShowTimesFeed;
 import com.tiwence.cinenow.utils.ApiUtils;
 import com.tiwence.cinenow.utils.ApplicationUtils;
-import com.tiwence.cinenow.utils.MyParallaxScrollview;
-
-import org.w3c.dom.Text;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 
 /**
  * Created by temarill on 02/02/2015.
  */
-public class MovieFragment extends android.support.v4.app.Fragment implements View.OnClickListener {
+public class MovieFragment extends android.support.v4.app.Fragment implements View.OnClickListener, SwipeRefreshLayout.OnRefreshListener {
 
     private View mRootView;
     private ImageView mBackdropView;
@@ -82,9 +55,13 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
     private TextView mDurationView;
     private TextView mKindView;
     private FloatingActionButton mFavoritesButton;
-    private ArrayList<Movie> mFavoritesMovies;
+    private SwipeRefreshLayout mSwipeRefresh;
+
+    private boolean mShowTimesFullyLoaded = false;
+
 
     private LinkedHashMap<MovieTheater, ArrayList<ShowTime>> mShowtimeDataset;
+    private ArrayList<Movie> mFavoritesMovies;
 
     private Location mLocation;
 
@@ -128,10 +105,13 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
         super.onResume();
         getResult().filterNewNextShowTimes();
         ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(false);
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_movies).setVisible(true);
+        ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_theaters).setVisible(true);
         ((FeedActivity)getActivity()).getMActionBar().setElevation(0);
         ((FeedActivity)getActivity()).getMActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_transparent));
         ((FeedActivity) getActivity()).getMActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
         ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
+        ((FeedActivity) getActivity()).getMActionBar().setDisplayShowTitleEnabled(false);
     }
 
     public ShowTimesFeed getResult() {
@@ -146,6 +126,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
      */
     private void configureView() {
         //Getting UI element
+        mSwipeRefresh = (SwipeRefreshLayout) mRootView.findViewById(R.id.swipeRefreshMovie);
         mBackdropView = (ImageView) mRootView.findViewById(R.id.backdropImageView);
         mMovieTitleView = (TextView) mRootView.findViewById(R.id.movieTitleTextView);
         mMovieOverview = (TextView) mRootView.findViewById(R.id.movieOverviewTextView);
@@ -160,17 +141,18 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
         mMovieAverageView.setText(getString(R.string.vote_average) + " " + String.valueOf(mCurrentMovie.vote_average) + "/10");
         mMovieOverview.setText(mCurrentMovie.overview);
         mDurationView.setText(getString(R.string.duration) + " " + mCurrentMovie.duration_time);
+
         if(mFavoritesMovies.contains(mCurrentMovie)) {
             mFavoritesButton.setIcon(R.drawable.ic_fab_star);
         } else {
-            mFavoritesButton.setIcon(R.drawable.ic_like);
+            mFavoritesButton.setIcon(R.drawable.ic_add_favorite);
         }
         mFavoritesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mFavoritesMovies.contains(mCurrentMovie)) {
                     mFavoritesMovies.remove(mCurrentMovie);
-                    mFavoritesButton.setIcon(R.drawable.ic_like);
+                    mFavoritesButton.setIcon(R.drawable.ic_add_favorite);
                 } else {
                     mFavoritesMovies.add(mCurrentMovie);
                     mFavoritesButton.setIcon(R.drawable.ic_fab_star);
@@ -178,6 +160,8 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
                 ApplicationUtils.saveDataInCache(getActivity(), mFavoritesMovies, ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
             }
         });
+
+        mSwipeRefresh.setOnRefreshListener(this);
 
         displayPosterAndBackdrop();
         displayNextShowTimes();
@@ -211,8 +195,6 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
             needToGetPosterPath = true;
         }
     }
-
-
 
     /**
      *
@@ -277,6 +259,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
                 ((ViewGroup) mRootView.findViewById(R.id.allShowTimesLayout)).addView(theaterShowTimesLayout);
                 theaterShowTimesLayout.requestLayout();
             }
+            mSwipeRefresh.setRefreshing(false);
         } else {
             requestMovieShowtimes();
         }
@@ -286,6 +269,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
      *
      */
     private void requestMovieShowtimes() {
+        mSwipeRefresh.setRefreshing(true);
         ApiUtils.instance().retrieveShowTimesMovieInfos(getActivity(), mLocation, mCurrentMovie, new OnRetrieveMovieShowTimesCompleted() {
             @Override
             public void onRetrieveMovieShowTimesCompleted(LinkedHashMap<MovieTheater, ArrayList<ShowTime>> dataset) {
@@ -297,7 +281,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
 
             @Override
             public void onRetrieveMovieShowTimesError(String errorMessage) {
-
+                mSwipeRefresh.setRefreshing(false);
             }
         });
     }
@@ -422,5 +406,11 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
         if (v.getTag() != null) {
             ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
         }
+    }
+
+    @Override
+    public void onRefresh() {
+        mSwipeRefresh.setRefreshing(true);
+        configureView();
     }
 }

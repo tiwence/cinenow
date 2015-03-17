@@ -24,7 +24,7 @@
             android:id="@+id/favoritesFloatingButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            fab:fab_icon="@drawable/ic_fab_star"
+            fab:fab_icon="@drawable/ic_add_favorite"
             fab:fab_colorNormal="@color/half_black"
             fab:fab_colorPressed="@color/background"
             android:layout_marginBottom="16dp"
