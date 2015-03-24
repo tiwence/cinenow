@@ -8,6 +8,7 @@
     <ImageView
         android:layout_width="100dp"
         android:layout_height="100dp"
+        android:layout_margin="10dp"
         android:id="@+id/theaterImagePlaceholder"
         android:src="@drawable/theater_maps" />
 

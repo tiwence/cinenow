@@ -84,7 +84,8 @@
             android:src="@android:drawable/ic_menu_add"
             android:text="+"
             android:id="@+id/buttonMoreShowTimes"
-            android:layout_alignParentRight="true"/>
+            android:layout_alignParentRight="true"
+            android:visibility="gone"/>
 
         <LinearLayout
             android:layout_width="match_parent"

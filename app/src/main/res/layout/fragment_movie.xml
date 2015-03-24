@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <com.tiwence.cinenow.utils.MyParallaxScrollview
+        <com.tiwence.instacine.utils.MyParallaxScrollview
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:parallax_factor="1.9"
@@ -162,7 +162,7 @@
 
                     </LinearLayout>
                 </LinearLayout>
-        </com.tiwence.cinenow.utils.MyParallaxScrollview>
+        </com.tiwence.instacine.utils.MyParallaxScrollview>
     </android.support.v4.widget.SwipeRefreshLayout>
     <com.getbase.floatingactionbutton.FloatingActionButton
         android:id="@+id/favoritesFloatingButton"

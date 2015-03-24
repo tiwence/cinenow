@@ -3,26 +3,27 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/reloadLayout"
+    android:id="@+id/noMoreShowTimesLayout"
     android:visibility="visible">
 
     <ImageView
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:src="@drawable/ic_reload"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:src="@drawable/ic_too_late"
         android:layout_centerInParent="true"
         android:id="@+id/reloadImage" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/reload_feed"
+        android:text="@string/no_more_showtimes"
         android:textColor="@android:color/white"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:layout_marginTop="10dip"
+        android:layout_margin="10dip"
         android:layout_below="@+id/reloadImage"
+        android:gravity="center_horizontal"
         android:layout_centerHorizontal="true"
-        android:id="@+id/reloadText" />
+        android:id="@+id/noMoreShowTimesText" />
 
     <View
         android:layout_width="match_parent"

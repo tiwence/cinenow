@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:layout_marginTop="?android:attr/actionBarSize">
+
+    <TextView
+        android:id="@+id/textViewAboutHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="40dip"
+        android:text="@string/action_about"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textViewVersionNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/textViewAboutHeader"
+        android:layout_centerHorizontal="true"
+        android:layout_marginLeft="10dip"
+        android:layout_marginRight="10dip"
+        android:layout_marginTop="30dip"
+        android:gravity="center_horizontal"
+        android:text=""
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="@color/dark_gray" />
+
+    <LinearLayout
+        android:id="@+id/aboutMenuButtonLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical" >
+
+        <Button
+            android:id="@+id/buttonShareApp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dip"
+            android:paddingLeft="10dip"
+            android:paddingRight="10dip"
+            android:text="@string/share" />
+
+        <Button
+            android:id="@+id/buttonReview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="20dp"
+            android:paddingLeft="10dip"
+            android:paddingRight="10dip"
+            android:text="@string/review"/>
+
+        <Button
+            android:id="@+id/buttonContact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="20dp"
+            android:paddingLeft="10dip"
+            android:paddingRight="10dip"
+            android:text="@string/contact" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="@string/api_terms"
+        android:id="@+id/aboutTextViewAPI"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"/>
+
+</RelativeLayout>

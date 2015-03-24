@@ -17,6 +17,8 @@
 
     <include layout="@layout/reload_feed_layout"/>
 
+    <include layout="@layout/no_more_showtimes_layout"/>
+
     <com.getbase.floatingactionbutton.FloatingActionButton
         android:id="@+id/theatersFloatingButton"
         android:layout_width="wrap_content"

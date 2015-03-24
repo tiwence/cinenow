@@ -4,23 +4,65 @@
     android:layout_height="match_parent"
     android:background="@color/feed_infos_background">
 
-    <ProgressBar android:indeterminate="true"
-        android:layout_width="70dp" android:layout_height="70dp"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="10dp"
-        android:layout_centerInParent="true"
-        android:id="@+id/progressBar" style="?android:attr/progressBarStyle"
-        android:layout_gravity="center_vertical|center_horizontal"/>
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+        <ImageView
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:src="@drawable/app_icon_splash"
+            android:id="@+id/android_splash_icon"
+            android:alpha="0"/>
+
+        <ProgressBar android:indeterminate="true"
+            android:layout_width="70dp" android:layout_height="70dp"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="10dp"
+            android:layout_below="@+id/android_splash_icon"
+            android:id="@+id/progressBar" style="?android:attr/progressBarStyle"
+            android:layout_gravity="center_vertical|center_horizontal"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/loading"
+            android:id="@+id/splashTextView"
+            android:gravity="center"
+            android:textColor="@android:color/white"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@id/progressBar"
+            android:layout_marginTop="10dp"
+            android:alpha="0"/>
+        </RelativeLayout>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/loading"
-        android:id="@+id/splashTextView"
+        android:textSize="42sp"
+        android:text="@string/app_name"
+        android:id="@+id/splashTextViewAppName"
         android:gravity="center"
         android:textColor="@android:color/white"
         android:layout_centerHorizontal="true"
-        android:layout_below="@id/progressBar"
-        android:layout_marginTop="10dp" />
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="10dp"
+        android:alpha="0"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="@string/api_terms"
+        android:id="@+id/splashTextViewAPI"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"/>
+
 </RelativeLayout>
+
