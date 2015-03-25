@@ -142,10 +142,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
         mFavoritesButton = (FloatingActionButton) mRootView.findViewById(R.id.favoritesFloatingButton);
 
         //Setting element
-        mMovieTitleView.setText(mCurrentMovie.title);
-        mMovieAverageView.setText(getString(R.string.vote_average) + " " + String.valueOf(mCurrentMovie.vote_average) + "/10");
-        mMovieOverview.setText(mCurrentMovie.overview);
-        mDurationView.setText(getString(R.string.duration) + " " + mCurrentMovie.duration_time);
+        displayMovieInfos();
 
         if(mFavoritesMovies.contains(mCurrentMovie)) {
             mFavoritesButton.setIcon(R.drawable.ic_remove_favorite);
@@ -175,6 +172,14 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
         displayPosterAndBackdrop();
         displayNextShowTimes();
         displayShowTimes();
+    }
+
+    private void displayMovieInfos() {
+        mMovieTitleView.setText(mCurrentMovie.title);
+        mMovieAverageView.setText(getString(R.string.vote_average) + " " + String.valueOf(mCurrentMovie.vote_average) + "/10");
+        mMovieOverview.setText(mCurrentMovie.overview);
+        mDurationView.setText(getString(R.string.duration) + " " + mCurrentMovie.duration_time);
+
     }
 
     private void displayPosterAndBackdrop() {
@@ -238,9 +243,8 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
      */
     private void displayShowTimes() {
         mShowtimeDataset = getResult().getShowTimesByTheatersForMovie(mCurrentMovie.title);
-
+        ((ViewGroup) mRootView.findViewById(R.id.allShowTimesLayout)).removeAllViews();
         if (mShowtimeDataset != null && mShowtimeDataset.size() > 0) {
-
             List<Map.Entry<MovieTheater, ArrayList<ShowTime>>> entries = new ArrayList<>(mShowtimeDataset.entrySet());
             Collections.sort(entries, new Comparator<Map.Entry<MovieTheater, ArrayList<ShowTime>>>() {
                 @Override
@@ -271,7 +275,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
                 }
                 theaterNameTextView.setOnClickListener(this);
                 ShowTime tempSt = new ShowTime();
-                tempSt.mTheaterId = entry.getKey().mName;
+                tempSt.mTheaterId = entry.getKey().mId;
                 theaterNameTextView.setTag(tempSt);
 
                 for (ShowTime st : entry.getValue()) {
@@ -318,11 +322,12 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
      *
      */
     private void requestMovieInfos() {
-        if (mCurrentMovie.id == 0) {
+        //if (mCurrentMovie.id == 0) {
             ApiUtils.instance().retrieveMovieInfo(mCurrentMovie, new OnRetrieveMovieInfoCompleted() {
                 @Override
                 public void onRetrieveMovieInfoCompleted(Movie movie) {
                     mCurrentMovie = movie;
+                    displayMovieInfos();
                     displayMovieOverview();
                     if (needToGetPosterPath) {
                         needToGetPosterPath = false;
@@ -336,7 +341,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
 
                 }
             });
-        } else {
+        //} else {
             ApiUtils.instance().retrieveMoreMovieInfos(mCurrentMovie, new OnRetrieveMovieMoreInfosCompleted() {
                 @Override
                 public void onRetrieveMovieMoreInfosCompleted(Movie movie) {
@@ -345,9 +350,11 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
                             && mCurrentMovie != null && mCurrentMovie.title != null) {
                         getResult().mMovies.put(mCurrentMovie.title, mCurrentMovie);
                         displayMovieOverview();
+                        displayMovieInfos();
                         ApplicationUtils.saveDataInCache(getActivity(), getResult().mMovies, ApplicationUtils.MOVIES_FILE_NAME);
                     }
                 }
+
                 @Override
                 public void onRetrieveMovieMoreInfosError(String errorMessage) {
 
@@ -373,7 +380,7 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
             } else {
                 displayCreditsInfos();
             }
-        }
+        //}
 
     }
 

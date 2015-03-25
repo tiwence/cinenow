@@ -153,8 +153,8 @@ public class ShowTimesFeed implements Serializable {
     public void addNewTheaterInfos(MovieTheater theater, LinkedHashMap<Movie, ArrayList<ShowTime>> dataset) {
         if (this.mTheaters == null)
             this.mTheaters = new LinkedHashMap<>();
-        if (mTheaters.containsKey(theater.mName))
-            mTheaters.put(theater.mName, theater);
+        if (mTheaters.containsKey(theater.mId))
+            mTheaters.put(theater.mId, theater);
 
         Iterator<Movie> it = dataset.keySet().iterator();
         while (it.hasNext()) {
@@ -204,8 +204,8 @@ public class ShowTimesFeed implements Serializable {
         while (it.hasNext()) {
             MovieTheater theaterKey = it.next();
             if (this.mTheaters == null) this.mTheaters = new LinkedHashMap<>();
-            if (!this.mTheaters.containsKey(theaterKey.mName))
-                this.mTheaters.put(theaterKey.mName, theaterKey);
+            if (!this.mTheaters.containsKey(theaterKey.mId))
+                this.mTheaters.put(theaterKey.mId, theaterKey);
 
             if (dataset.get(theaterKey)!= null) {
                 for (ShowTime st : dataset.get(theaterKey)) {

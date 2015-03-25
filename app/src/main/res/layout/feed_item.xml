@@ -7,8 +7,6 @@
     android:id="@+id/relativeLayout"
     android:clipChildren="false">
 
-
-
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -106,10 +104,10 @@
         android:layout_marginTop="130dp"
         android:layout_marginLeft="20dp"
         android:padding="10dp"
-        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textSize="30sp"
         android:textColor="@color/white"
         android:text="@string/why_not"
-        android:background="@color/feed_infos_background"
+        android:background="@color/dark_gray"
         android:textStyle="bold"/>
 
     <TextView
@@ -121,11 +119,11 @@
         android:layout_marginTop="130dp"
         android:layout_marginRight="20dp"
         android:textAlignment="center"
-        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textSize="30sp"
         android:textColor="@color/white"
         android:textStyle="bold"
         android:text="@string/no_way"
-        android:background="@color/feed_infos_background"
+        android:background="@color/dark_gray"
         android:layout_alignParentRight="true" />
 
 </RelativeLayout>

@@ -261,7 +261,7 @@ public class ApiUtils {
 
                                 ShowTime st = new ShowTime();
                                 st.mMovieId = movie.title;
-                                st.mTheaterId = movieTheater.mName;
+                                st.mTheaterId = movieTheater.mId;
                                 st.mShowTimeStr = showTime;
                                 st.mTimeRemaining = timeRemaining;
                                 st.mId = st.mMovieId + st.mTheaterId + st.mShowTimeStr;
@@ -282,16 +282,16 @@ public class ApiUtils {
                         }
                         //We sort showtimes by their time remaining
                         //Collections.sort(showTimes, ShowTime.ShowTimeComparator);
-                        Collections.sort(nextShowtimes, ShowTime.ShowTimeComparator);
                         if (!movies.containsKey(movie.title)) {
                             movies.put(movie.title, movie);
                         }
                     }
                     //if (showTimeNb > 0)
-                        theaters.put(movieTheater.mName, movieTheater);
+                        theaters.put(movieTheater.mId, movieTheater);
                 }
             }
         }
+        Collections.sort(nextShowtimes, ShowTime.ShowTimeComparator);
         ShowTimesFeed result = new ShowTimesFeed();
         result.mTheaters = theaters;
         result.mMovies = movies;
@@ -357,18 +357,20 @@ public class ApiUtils {
 
                 String query = Uri.encode(movie.title.replaceAll("\\s", "+").replaceAll("3D", ""));
                 String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr&year=" + ApplicationUtils.getYear() ;
-                Log.d("SEARCH MOVIE URL", searchMoVieUrl);
                 String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
                 if (movieJSONString != null) {
                     try {
                         JSONObject movieJSON = new JSONObject(movieJSONString);
                         if (movieJSON.optInt("total_results") > 0) {
-                            movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
-                            movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
-                            movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
-                            movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
-                            movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optLong("vote_average");
-                            movie.runtime = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("runtime");
+                            fillMovieInfos(movie, (JSONObject)movieJSON.optJSONArray("results").get(0));
+                        } else {
+                            searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
+                            movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
+                            if (movieJSONString != null) {
+                                movieJSON = new JSONObject(movieJSONString);
+                                if (movieJSON.optInt("total_results") > 0)
+                                    fillMovieInfos(movie, (JSONObject)movieJSON.optJSONArray("results").get(0));
+                            }
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -387,6 +389,20 @@ public class ApiUtils {
                 }
             }
         }.executeOnExecutor(AsyncTask.SERIAL_EXECUTOR);
+    }
+
+    /**
+     *
+     * @param movie
+     * @param movieJSON
+     */
+    public void fillMovieInfos(Movie movie, JSONObject movieJSON) {
+        movie.id = movieJSON.optInt("id");
+        movie.poster_path = movieJSON.optString("poster_path");
+        movie.backdrop_path = movieJSON.optString("backdrop_path");
+        movie.release_date = movieJSON.optString("release_date");
+        movie.vote_average = movieJSON.optDouble("vote_average");
+        movie.runtime = movieJSON.optInt("runtime");
     }
 
     /**
@@ -414,13 +430,15 @@ public class ApiUtils {
                             try {
                                 JSONObject movieJSON = new JSONObject(movieJSONString);
                                 if (movieJSON.optInt("total_results") > 0) {
-                                    movie.id = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("id");
-                                    movie.poster_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("poster_path");
-                                    movie.backdrop_path = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("backdrop_path");
-                                    movie.release_date = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optString("release_date");
-                                    movie.vote_average = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optDouble("vote_average");
-                                    movie.runtime = ((JSONObject)movieJSON.optJSONArray("results").get(0)).optInt("runtime");
-                                    this.publishProgress(movie);
+                                    fillMovieInfos(movie, (JSONObject)movieJSON.optJSONArray("results").get(0));
+                                } else {
+                                    searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY + "&language=fr";
+                                    movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
+                                    if (movieJSONString != null) {
+                                        movieJSON = new JSONObject(movieJSONString);
+                                        if (movieJSON.optInt("total_results") > 0)
+                                            fillMovieInfos(movie, (JSONObject)movieJSON.optJSONArray("results").get(0));
+                                    }
                                 }
                             } catch (JSONException e) {
                                 e.printStackTrace();
@@ -758,7 +776,7 @@ public class ApiUtils {
 
                     ShowTime st = new ShowTime();
                     st.mMovieId = movie.title;
-                    st.mTheaterId = theater.mName;
+                    st.mTheaterId = theater.mId;
                     st.mShowTimeStr = showTime;
                     st.mTimeRemaining = timeRemaining;
                     st.mId = st.mMovieId + st.mTheaterId + st.mShowTimeStr;
@@ -852,7 +870,7 @@ public class ApiUtils {
                     int timeRemaining = ApplicationUtils.getTimeRemaining(showTime);
                     ShowTime st = new ShowTime();
                     st.mMovieId = movie.title;
-                    st.mTheaterId = theater.mName;
+                    st.mTheaterId = theater.mId;
                     st.mShowTimeStr = showTime;
                     st.mTimeRemaining = timeRemaining;
                     st.mId = st.mMovieId + st.mTheaterId + st.mShowTimeStr;

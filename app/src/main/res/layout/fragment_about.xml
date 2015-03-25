@@ -2,7 +2,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:layout_marginTop="?android:attr/actionBarSize">
+    android:layout_marginTop="?android:attr/actionBarSize"
+    android:id="@+id/aboutLayout">
 
     <TextView
         android:id="@+id/textViewAboutHeader"
@@ -11,7 +12,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="40dip"
         android:text="@string/action_about"
-        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textSize="30sp"
         android:textStyle="bold" />
 
     <TextView
@@ -35,35 +36,75 @@
         android:layout_centerInParent="true"
         android:orientation="vertical" >
 
-        <Button
+        <LinearLayout
             android:id="@+id/buttonShareApp"
-            android:layout_width="wrap_content"
+            android:layout_width="150dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="10dip"
-            android:paddingLeft="10dip"
-            android:paddingRight="10dip"
-            android:text="@string/share" />
+            android:orientation="horizontal"
+            android:background="@drawable/about_button_background"
+            android:padding="5dp"
+            android:layout_margin="10dp">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_menu_share"
+                />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/share"
+                android:textAppearance="?android:textAppearanceLarge"
+                android:paddingLeft="5dp"
+                android:layout_gravity="center_vertical"
+                android:textColor="@color/white"/>
+        </LinearLayout>
 
-        <Button
+        <LinearLayout
             android:id="@+id/buttonReview"
-            android:layout_width="wrap_content"
+            android:layout_width="150dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="20dp"
-            android:paddingLeft="10dip"
-            android:paddingRight="10dip"
-            android:text="@string/review"/>
+            android:orientation="horizontal"
+            android:background="@drawable/about_button_background"
+            android:padding="5dp"
+            android:layout_margin="10dp">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_menu_add"
+                />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/review"
+                android:textAppearance="?android:textAppearanceLarge"
+                android:paddingLeft="5dp"
+                android:layout_gravity="center_vertical"
+                android:textColor="@color/white"/>
+        </LinearLayout>
 
-        <Button
+        <LinearLayout
             android:id="@+id/buttonContact"
-            android:layout_width="wrap_content"
+            android:layout_width="150dp"
+            android:layout_margin="10dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="20dp"
-            android:paddingLeft="10dip"
-            android:paddingRight="10dip"
-            android:text="@string/contact" />
+            android:orientation="horizontal"
+            android:background="@drawable/about_button_background"
+            android:padding="5dp">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_menu_send"
+                />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contact"
+                android:textAppearance="?android:textAppearanceLarge"
+                android:paddingLeft="5dp"
+                android:layout_gravity="center_vertical"
+                android:textColor="@color/white"/>
+        </LinearLayout>
+
     </LinearLayout>
 
     <TextView

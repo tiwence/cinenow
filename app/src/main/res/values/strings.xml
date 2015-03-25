@@ -55,6 +55,8 @@
     <string name="remove_favorite_movie">%1$s supprimé de votre liste de films favoris</string>
     <string name="remove_favorite_theater">%1$s supprimé de votre liste de cinémas favoris</string>
     <string name="add_favorite_theater">%1$s ajouté à votre liste de cinémas favoris</string>
+    <string name="no_favorite_movies_yet">Vous n\'avez pas encore de films favoris</string>
+    <string name="no_favorite_theaters_yet">Vous n\'avez pas encore de cinémas favoris</string>
 
 
 </resources>

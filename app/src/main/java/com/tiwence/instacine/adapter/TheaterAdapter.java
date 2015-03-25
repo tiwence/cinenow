@@ -5,7 +5,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.BaseAdapter;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.tiwence.instacine.FeedActivity;
@@ -64,6 +66,7 @@ public class TheaterAdapter extends BaseAdapter implements View.OnClickListener 
             vh.mTheaterName = (TextView) convertView.findViewById(R.id.theaterNameText);
             vh.mHListView = (HListView) convertView.findViewById(R.id.hListView);
             vh.mNoShowTimesPlaceholder = (TextView) convertView.findViewById(R.id.noshowtimesPlaceholder);
+
             convertView.setTag(vh);
         }
         vh = (ViewHolder) convertView.getTag();
@@ -76,12 +79,12 @@ public class TheaterAdapter extends BaseAdapter implements View.OnClickListener 
             vh.mTheaterName.setText(mt.mName + " (" + mt.mDistance + " km)");
         }
         ShowTime showTimeTemp = new ShowTime();
-        showTimeTemp.mTheaterId = mt.mName;
+        showTimeTemp.mTheaterId = mt.mId;
         vh.mTheaterName.setTag(showTimeTemp);
         vh.mTheaterName.setOnClickListener(TheaterAdapter.this);
 
         ArrayList<ShowTime> showTimes = mTheatersFragment.filteredShowTime(
-                mTheatersFragment.getResults().getNextShowTimesByTheaterId(mt.mName));
+                mTheatersFragment.getResults().getNextShowTimesByTheaterId(mt.mId));
         if (showTimes != null && !showTimes.isEmpty()) {
             vh.mHListView.setAdapter(new ShowtimeAdapter(mTheatersFragment.getActivity(),showTimes));
             vh.mNoShowTimesPlaceholder.setVisibility(View.GONE);
@@ -93,7 +96,7 @@ public class TheaterAdapter extends BaseAdapter implements View.OnClickListener 
         vh.mHListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                ShowTime st = mTheatersFragment.filteredShowTime(mTheatersFragment.getResults().getNextShowTimesByTheaterId(mt.mName)).get(i);
+                ShowTime st = mTheatersFragment.filteredShowTime(mTheatersFragment.getResults().getNextShowTimesByTheaterId(mt.mId)).get(i);
                 MovieFragment mf = new MovieFragment();
                 Bundle b = new Bundle();
                 b.putString("movie_id", st.mMovieId);

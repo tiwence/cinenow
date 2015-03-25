@@ -170,11 +170,11 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     }
 
-    @Override
+    /*@Override
     protected void onSaveInstanceState(Bundle outState) {
         outState.putSerializable("results", mResult);
         super.onSaveInstanceState(outState);
-    }
+    }*/
 
     @Override
     protected void onResume() {
@@ -656,15 +656,15 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     this.mEditSearch.setText("");
                     TheaterFragment tf = new TheaterFragment();
                     Bundle b = new Bundle();
-                    if (!mResult.mTheaters.containsKey(theater.mName)) {
-                        mResult.mTheaters.put(theater.mName, theater);
+                    if (!mResult.mTheaters.containsKey(theater.mId)) {
+                        mResult.mTheaters.put(theater.mId, theater);
                     }
-                    b.putString("theater_id", theater.mName);
+                    b.putString("theater_id", theater.mId);
                     tf.setArguments(b);
                     getSupportFragmentManager().beginTransaction()
                             .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                     android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                            .replace(R.id.mainContainer, tf, theater.mName)
+                            .replace(R.id.mainContainer, tf, theater.mId)
                             .addToBackStack(null)
                             .commit();
                 }
@@ -673,42 +673,42 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
     }
 
     @Override
-    public void onSelectedChoice(String movieTheaterName, ShowTime showTime, int position) {
+    public void onSelectedChoice(String movieTheaterId, ShowTime showTime, int position) {
         MovieTheater theater = null;
         switch(position) {
             case 0:
                 if (showTime == null)
-                    theater = mResult.mTheaters.get(movieTheaterName);
+                    theater = mResult.mTheaters.get(movieTheaterId);
                 else
                     theater = mResult.mTheaters.get(showTime.mTheaterId);
 
                 if (theater == null) {
                     theater = new MovieTheater();
-                    theater.mName = movieTheaterName;
+                    theater.mId = movieTheaterId;
                 }
                 TheaterFragment tf = new TheaterFragment();
                 Bundle b = new Bundle();
-                if (!mResult.mTheaters.containsKey(theater.mName)) {
-                    mResult.mTheaters.put(theater.mName, theater);
+                if (!mResult.mTheaters.containsKey(theater.mId)) {
+                    mResult.mTheaters.put(theater.mId, theater);
                 }
-                b.putString("theater_id", theater.mName);
+                b.putString("theater_id", theater.mId);
                 tf.setArguments(b);
                 getSupportFragmentManager().beginTransaction()
                         .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
                                 android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                        .replace(R.id.mainContainer, tf, theater.mName)
+                        .replace(R.id.mainContainer, tf, theater.mId)
                         .addToBackStack(null)
                         .commit();
                 break;
             case 1:
-                theater = mResult.mTheaters.get(movieTheaterName);
+                theater = mResult.mTheaters.get(movieTheaterId);
                 String uri;
                 if (theater.mLatitude == -10000 && theater.mLongitude == -10000) {
                     uri = String.format(Locale.ENGLISH, "http://maps.google.com/maps?&daddr=%s (%s)",
-                            theater.mAddress, movieTheaterName);
+                            theater.mAddress, getResults().mTheaters.get(movieTheaterId).mName);
                 } else {
                     uri = String.format(Locale.ENGLISH, "http://maps.google.com/maps?&daddr=%f,%f (%s)",
-                            theater.mLatitude, theater.mLongitude, movieTheaterName);
+                            theater.mLatitude, theater.mLongitude, getResults().mTheaters.get(movieTheaterId).mName);
                 }
 
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
@@ -720,7 +720,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     Intent shareIntent = new Intent();
                     shareIntent.setAction(Intent.ACTION_SEND);
                     shareIntent.putExtra(Intent.EXTRA_TEXT, String.format(getString(R.string.sharing_string),
-                            showTime.mMovieId, showTime.mShowTimeStr, showTime.mTheaterId));
+                            showTime.mMovieId, showTime.mShowTimeStr, getResults().mTheaters.get(showTime.mTheaterId).mName));
                     shareIntent.setType("text/plain");
                     startActivity(Intent.createChooser(shareIntent, getResources().getText(R.string.share_with)));
                 }

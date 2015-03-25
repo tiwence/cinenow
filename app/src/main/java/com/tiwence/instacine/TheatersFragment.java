@@ -126,9 +126,9 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
                 int totalNbST = 0;
                 for (MovieTheater theater : mTheaters) {
                     totalNbST = 0;
-                    if (this.getResults() != null && theater.mName != null
-                            && this.getResults().getNextShowTimesByTheaterId(theater.mName) != null) {
-                        for (ShowTime st : this.getResults().getNextShowTimesByTheaterId(theater.mName)) {
+                    if (this.getResults() != null && theater.mId != null
+                            && this.getResults().getNextShowTimesByTheaterId(theater.mId) != null) {
+                        for (ShowTime st : this.getResults().getNextShowTimesByTheaterId(theater.mId)) {
                             if (getResults().mMovies.get(st.mMovieId).kind != null &&
                                     getResults().mMovies.get(st.mMovieId).kind.equals(getResults().mMovieKinds.get(mKindIndex))) {
                                 totalNbST ++;

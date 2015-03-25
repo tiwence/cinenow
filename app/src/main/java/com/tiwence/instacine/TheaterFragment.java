@@ -77,7 +77,7 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
             mCurrentTheater = getResult().mTheaters.get(getArguments().getString("theater_id"));
         } else if (getArguments().getSerializable("theater") != null){
             mCurrentTheater = (MovieTheater)getArguments().getSerializable("theater");
-            getResult().mTheaters.put(mCurrentTheater.mName, mCurrentTheater);
+            getResult().mTheaters.put(mCurrentTheater.mId, mCurrentTheater);
             ApplicationUtils.saveDataInCache(getActivity(), getResult().mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
         }
 
@@ -247,7 +247,7 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
         public TheaterAdapter() {
             if (getActivity() != null) {
                 mInflater = (LayoutInflater)getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                mDataset = getResult().getShowTimesByMoviesForTheater(mCurrentTheater.mName);
+                mDataset = getResult().getShowTimesByMoviesForTheater(mCurrentTheater.mId);
             }
         }
 
@@ -354,7 +354,7 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
                     break;
                 case TYPE_NEXT_ITEM:
                     vh.theaterName.setVisibility(View.GONE);
-                    final ArrayList<ShowTime> sts = getResult().getNextShowTimesByTheaterId(mCurrentTheater.mName);
+                    final ArrayList<ShowTime> sts = getResult().getNextShowTimesByTheaterId(mCurrentTheater.mId);
                     if (sts != null && !sts.isEmpty()) {
                         vh.nextShowTimesListView.setAdapter(new ShowtimeAdapter(getActivity(), sts));
                         vh.mNoShowTimesPlaceholder.setVisibility(View.GONE);

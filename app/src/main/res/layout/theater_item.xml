@@ -22,7 +22,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="10dip"
-        android:paddingTop="10dip" />
+        android:paddingTop="10dip"
+        android:background="@color/background"
+        android:listSelector="@drawable/hlistview_selector"/>
 
 
     <TextView
@@ -35,7 +37,6 @@
         android:paddingLeft="5dip"
         android:paddingBottom="10dip"
         android:paddingTop="10dip"/>
-
 
 
 </RelativeLayout>

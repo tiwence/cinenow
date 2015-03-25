@@ -4,16 +4,32 @@
     android:layout_height="match_parent"
     android:layout_marginTop="?android:attr/actionBarSize">
 
-    <android.support.v4.widget.SwipeRefreshLayout
-        android:id="@+id/swipeRefreshFavorites"
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
-        <ExpandableListView
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/noFavoriteMoviesText"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/favoritesListView"
-            android:choiceMode="multipleChoiceModal"/>
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:padding="20dip"
+            android:gravity="center_horizontal"
+            android:text="@string/no_favorite_movies_yet"/>
 
-    </android.support.v4.widget.SwipeRefreshLayout>
+        <android.support.v4.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefreshFavorites"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+                <ExpandableListView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/favoritesListView"
+                    android:choiceMode="multipleChoiceModal"
+                    android:paddingTop="10dp"
+                    android:clipToPadding="false"/>
+
+        </android.support.v4.widget.SwipeRefreshLayout>
+
+    </RelativeLayout>
 </LinearLayout>

@@ -64,9 +64,9 @@ public class FavoritesMoviesFragment extends android.support.v4.app.Fragment imp
         mSwipeRefreshLayout = (SwipeRefreshLayout) mRootView.findViewById(R.id.swipeRefreshFavorites);
         mSwipeRefreshLayout.setOnRefreshListener(this);
         mFavoritesList = (ArrayList<Movie>) ApplicationUtils.getDataInCache(getActivity(), ApplicationUtils.FAVORITES_MOVIES_FILE_NAME);
-        if (mFavoritesList == null)
+        if (mFavoritesList == null) {
             mFavoritesList = new ArrayList<>();
-
+        }
         return mRootView;
     }
 
@@ -84,6 +84,16 @@ public class FavoritesMoviesFragment extends android.support.v4.app.Fragment imp
         ((FeedActivity) getActivity()).getMActionBar().setDisplayHomeAsUpEnabled(true);
         ((FeedActivity)getActivity()).getMActionBar()
                 .setBackgroundDrawable(getResources().getDrawable(R.drawable.action_bar_gray));
+    }
+
+    public void displayNoDataTextView(boolean isVisible) {
+        if (isVisible) {
+            mRootView.findViewById(R.id.noFavoriteMoviesText).setVisibility(View.VISIBLE);
+            mFavoritesListView.setVisibility(View.GONE);
+        } else {
+            mRootView.findViewById(R.id.noFavoriteMoviesText).setVisibility(View.GONE);
+            mFavoritesListView.setVisibility(View.VISIBLE);
+        }
     }
 
     /**
@@ -124,6 +134,7 @@ public class FavoritesMoviesFragment extends android.support.v4.app.Fragment imp
      */
     private void loadData() {
         mSwipeRefreshLayout.setRefreshing(true);
+        displayNoDataTextView(false);
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
@@ -144,6 +155,11 @@ public class FavoritesMoviesFragment extends android.support.v4.app.Fragment imp
                 super.onPostExecute(aVoid);
                 mSwipeRefreshLayout.setRefreshing(false);
                 mFavoritesListView.setAdapter(new FavoritesMoviesListAdapter());
+                if (mFavoritesList.size() > 0)
+                    displayNoDataTextView(false);
+                else
+                    displayNoDataTextView(true);
+
             }
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }

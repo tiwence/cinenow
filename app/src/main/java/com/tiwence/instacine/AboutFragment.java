@@ -24,7 +24,6 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // TODO Auto-generated method stub
 
         mAboutView = inflater.inflate(R.layout.fragment_about, container, false);
 
