@@ -13,6 +13,7 @@
             android:layout_height="200dp"
             android:src="@drawable/app_icon_splash"
             android:id="@+id/android_splash_icon"
+            android:layout_centerHorizontal="true"
             android:alpha="0"/>
 
         <ProgressBar android:indeterminate="true"
@@ -20,8 +21,7 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="10dp"
             android:layout_below="@+id/android_splash_icon"
-            android:id="@+id/progressBar" style="?android:attr/progressBarStyle"
-            android:layout_gravity="center_vertical|center_horizontal"/>
+            android:id="@+id/progressBar" style="?android:attr/progressBarStyle"/>
 
         <TextView
             android:layout_width="wrap_content"

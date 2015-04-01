@@ -32,6 +32,8 @@
         android:layout_below="@+id/moviePosterView"
         android:gravity="center_horizontal"
         android:layout_centerHorizontal="true"
-        android:maxLines="3"/>
+        android:maxLines="3"
+        android:minLines="1"
+        android:paddingBottom="5dp"/>
 
 </RelativeLayout>
