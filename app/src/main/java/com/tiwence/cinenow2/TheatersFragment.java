@@ -109,8 +109,13 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
         filterTheaters();
         Collections.sort(mTheaters, MovieTheater.MovieTheatersDistanceComparator);
         if (getActivity() != null) {
-            mTheaterAdapter = new TheaterAdapter(TheatersFragment.this, mTheaters);
-            mListView.setAdapter(mTheaterAdapter);
+            if (mListView.getAdapter() == null) {
+                mTheaterAdapter = new TheaterAdapter(TheatersFragment.this, mTheaters);
+                mListView.setAdapter(mTheaterAdapter);
+            } else {
+                mTheaterAdapter.updateData(mTheaters);
+                mTheaterAdapter.notifyDataSetChanged();
+            }
             mSwipeRefresh.setRefreshing(false);
         }
     }

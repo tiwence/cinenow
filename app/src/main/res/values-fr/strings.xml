@@ -50,7 +50,7 @@
     <string name="share_via">Partager avec</string>
     <string name="please_turn_on_gps">Vous devez activer votre localisation pour utiliser Insta Ciné.</string>
     <string name="informations">Informations</string>
-    <string name="no_more_showtimes">Arf... Plus de séances pour aujourd\'hui. Réessayey demain matin !</string>
+    <string name="no_more_showtimes">Arf... Plus de séances pour aujourd\'hui. Réessayez plus tard !</string>
     <string name="add_favorite_movie">%1$s ajouté à votre liste de films favoris</string>
     <string name="remove_favorite_movie">%1$s supprimé de votre liste de films favoris</string>
     <string name="remove_favorite_theater">%1$s supprimé de votre liste de cinémas favoris</string>
@@ -62,4 +62,7 @@
     <string name="in">Dans</string>
     <string name="one_theater_selected">1 cinéma sélectionné</string>
     <string name="theaters_selected">%1$d cinémas sélectionnés</string>
+    <string name="no_overview">Pas de résumé</string>
+    <string name="no_vote_average_yet">Pas encore noté</string>
+
 </resources>

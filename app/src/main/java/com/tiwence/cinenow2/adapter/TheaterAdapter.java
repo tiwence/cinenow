@@ -16,6 +16,7 @@ import com.tiwence.cinenow2.R;
 import com.tiwence.cinenow2.model.MovieTheater;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 import it.sephiroth.android.library.widget.AdapterView;
@@ -34,6 +35,10 @@ public class TheaterAdapter extends BaseAdapter implements View.OnClickListener 
         this.mTheaters = theaters;
         this.mInflater = LayoutInflater.from(tf.getActivity());
         this.mTheatersFragment = tf;
+    }
+
+    public void updateData(ArrayList<MovieTheater> theaters) {
+        this.mTheaters = theaters;
     }
 
     @Override

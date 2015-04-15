@@ -62,6 +62,7 @@
     <string name="location">Location in progress...</string>
     <string name="one_theater_selected">1 movie theater selected</string>
     <string name="theaters_selected">%1$d movie theaters selected</string>
-
+    <string name="no_overview">No overview found</string>
+    <string name="no_vote_average_yet">No vote average yet</string>
 
 </resources>

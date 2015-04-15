@@ -175,8 +175,18 @@ public class MovieFragment extends android.support.v4.app.Fragment implements Vi
 
     private void displayMovieInfos() {
         mMovieTitleView.setText(mCurrentMovie.title);
-        mMovieAverageView.setText(getString(R.string.vote_average) + " " + String.valueOf(mCurrentMovie.vote_average) + "/10");
-        mMovieOverview.setText(mCurrentMovie.overview);
+        if (mCurrentMovie.vote_average > 0.0) {
+            mMovieAverageView.setText(getString(R.string.vote_average) + " " + String.valueOf(mCurrentMovie.vote_average) + "/10");
+        } else {
+            mMovieAverageView.setText(getString(R.string.no_vote_average_yet));
+        }
+
+        if (mCurrentMovie.overview == null || mCurrentMovie.overview.trim().equals("")
+                || mCurrentMovie.overview.trim().equals("null")) {
+            mMovieOverview.setText(getString(R.string.no_overview));
+        } else {
+            mMovieOverview.setText(mCurrentMovie.overview);
+        }
         mDurationView.setText(getString(R.string.duration) + " " + mCurrentMovie.duration_time);
 
     }

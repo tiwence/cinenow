@@ -134,7 +134,11 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
      *
      */
     private void configureView() {
-        mListViewTheater.setAdapter(new TheaterAdapter());
+        if (mListViewTheater.getAdapter() == null) {
+            mListViewTheater.setAdapter(new TheaterAdapter());
+        } else {
+            mListViewTheater.deferNotifyDataSetChanged();
+        }
 
         if(mFavoritesTheaters.contains(mCurrentTheater)) {
             mFavoritesButton.setIcon(R.drawable.ic_remove_favorite);
