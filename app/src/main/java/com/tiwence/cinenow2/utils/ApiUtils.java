@@ -112,7 +112,7 @@ public class ApiUtils {
                     String key = it.next();
                     MovieTheater theater = result.mTheaters.get(key);
                     theater = geocodeSpecificTheater(theater, location);
-                    Log.d("Theater distance", theater.mName + " : " +theater.mDistance);
+                    //Log.d("Theater distance", theater.mName + " : " +theater.mDistance);
                 }
 
                 return null;
@@ -136,10 +136,10 @@ public class ApiUtils {
     public MovieTheater geocodeSpecificTheater(MovieTheater theater, Location location) {
         if (theater.mLatitude == -10000 && theater.mLongitude == -10000) {
             theater = TheatersUtils.instance().getTheaterDistance(theater, location);
-            Log.d("Theater distance local", theater.mName + " : " + theater.mDistance);
+            //Log.d("Theater distance local", theater.mName + " : " + theater.mDistance);
             if (theater.mDistance < 0) {
                 String geocodingUrl = MAPQUEST_GEOCODING_ROOT_URL + Uri.encode(theater.mAddress);
-                Log.d("Geocoding url", geocodingUrl);
+                //Log.d("Geocoding url", geocodingUrl);
                 String geocodingJSONString = HttpUtils.httpGet(geocodingUrl);
                 try {
                     JSONObject geocodingJSON = new JSONObject(geocodingJSONString);
@@ -154,7 +154,7 @@ public class ApiUtils {
                             dest.setLongitude(theater.mLongitude);
                             theater.mDistance = location.distanceTo(dest) / 1000;
                             theater.mDistance = (double)Math.round(theater.mDistance * 100) / 100;
-                            Log.d("Geocoding : ", theater.mName + ", " + theater.mLatitude + ", " + theater.mLongitude + ", " + theater.mDistance);
+                            //Log.d("Geocoding : ", theater.mName + ", " + theater.mLatitude + ", " + theater.mLongitude + ", " + theater.mDistance);
                             TheatersUtils.instance().putTheaterDistance(theater);
                         } else {
                             theater.mDistance = 1000;
@@ -165,7 +165,7 @@ public class ApiUtils {
                     e.printStackTrace();
                 }
             }
-        } else if (theater.mDistance >= 10000) {
+        } else {
             Location dest = new Location("");
             dest.setLatitude(theater.mLatitude);
             dest.setLongitude(theater.mLongitude);
@@ -224,7 +224,7 @@ public class ApiUtils {
 
                     }
 
-                    Log.d("THEATER GET", movieTheater.mId + ", " + movieTheater.mName);
+                    //Log.d("THEATER GET", movieTheater.mId + ", " + movieTheater.mName);
 
                     //Getting movies according to the theater
                     Elements movieDivs = theaterDiv.getElementsByClass("movie");
@@ -429,7 +429,7 @@ public class ApiUtils {
                         String query = Uri.encode(movie.title).replaceAll("\\s", "+").replaceAll("3D", "");
                         String searchMoVieUrl = MOVIE_DB_SEARCH_MOVIE_ROOT_URL + query + "&api_key=" + MOVIE_DB_API_KEY
                                 + "&language=" + Locale.getDefault().getLanguage().trim() + "&year=" + ApplicationUtils.getYear();
-                        Log.d("Movie infos", searchMoVieUrl);
+                        //Log.d("Movie infos", searchMoVieUrl);
                         String movieJSONString = HttpUtils.httpGet(searchMoVieUrl);
                         if (movieJSONString != null) {
                             try {
@@ -490,7 +490,7 @@ public class ApiUtils {
 
                     String query = location.getLatitude() + "," + location.getLongitude() +
                             "&q=" + Uri.encode(queryName).replaceAll("\\s", "+") + "&sort=1";
-                    Log.d("Google movies query", URL_API_MOVIE_THEATERS + query);
+                    //Log.d("Google movies query", URL_API_MOVIE_THEATERS + query);
 
                     try {
                         doc = Jsoup.connect(URL_API_MOVIE_THEATERS + query).get();
@@ -550,7 +550,7 @@ public class ApiUtils {
                             }
                         }
 
-                        Log.d("PARSE QUERY RESULT", "Movie : " + movie.title + ", " + movie.id_g);
+                        //Log.d("PARSE QUERY RESULT", "Movie : " + movie.title + ", " + movie.id_g);
 
                         //if (movie.id_g != null && !movie.id_g.equals("")) {
                             if (data == null) data = new ArrayList<>();
@@ -575,13 +575,9 @@ public class ApiUtils {
                             movieTheater.mAddress = theaterElement.getElementsByClass("info").get(0).text();
                         movieTheater.mDistance = 10000.0;
 
-                        Log.d("PARSE QUERY RESULT", "Adding theater 2 : " + movieTheater.mId);
-
                         if (movieTheater.mName != null && !movieTheater.mName.equals("")) {
                             if (data == null) data = new ArrayList<>();
                             data.add(movieTheater);
-
-                            Log.d("PARSE QUERY RESULT", "Adding theater : " + movieTheater.mName);
                         }
                     }
                 }
@@ -604,7 +600,7 @@ public class ApiUtils {
 
                 String movieUrl = MOVIE_DB_MOVIE_ROOT_URL + movie.id + "?api_key=" + MOVIE_DB_API_KEY +
                         "&language=" + Locale.getDefault().getLanguage().trim();
-                Log.d("Movie infos", movieUrl);
+                //Log.d("Movie infos", movieUrl);
                 String movieJSONString = HttpUtils.httpGet(movieUrl);
                 try {
                     if (movieJSONString != null) {
@@ -649,7 +645,7 @@ public class ApiUtils {
 
                 String movieUrl = MOVIE_DB_MOVIE_ROOT_URL + movie.id + "/credits?api_key=" + MOVIE_DB_API_KEY +
                         "&language=" + Locale.getDefault().getLanguage().trim();
-                Log.d("Credits infos", movieUrl);
+                //Log.d("Credits infos", movieUrl);
                 String creditsJSONString = HttpUtils.httpGet(movieUrl);
                 if (creditsJSONString != null) {
                     try {
@@ -709,8 +705,6 @@ public class ApiUtils {
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
-    //public void retrieveShowTimesTheatersInfos(final Context context, LinkedHashMap<String, MovieTheater>)
-
     /**
      *  @param theater
      * @param listener
@@ -727,6 +721,7 @@ public class ApiUtils {
                 } else {
                     theaterUrl = URL_API_MOVIE_THEATERS + "&q=" + theater.mName;
                 }
+
                 try {
                     doc = Jsoup.connect(theaterUrl).get();
                     return createMoviesDatasetForTheater(context, theater, doc);

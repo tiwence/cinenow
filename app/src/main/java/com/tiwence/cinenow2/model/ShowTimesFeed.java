@@ -1,5 +1,7 @@
 package com.tiwence.cinenow2.model;
 
+import android.util.Log;
+
 import com.tiwence.cinenow2.utils.ApplicationUtils;
 
 import java.io.Serializable;
@@ -137,6 +139,7 @@ public class ShowTimesFeed implements Serializable {
         for (Iterator<String> it = mShowTimes.keySet().iterator(); it.hasNext();) {
             String key = it.next();
             ShowTime st = mShowTimes.get(key);
+            Log.d("ST THEATER ID", st.mTheaterId + ", " + theaterId);
             if (st.mTheaterId.equals(theaterId)) {
                 if (showTimes == null) showTimes = new ArrayList<ShowTime>();
                 showTimes.add(st);
@@ -151,10 +154,11 @@ public class ShowTimesFeed implements Serializable {
      * @param dataset
      */
     public void addNewTheaterInfos(MovieTheater theater, LinkedHashMap<Movie, ArrayList<ShowTime>> dataset) {
+
         if (this.mTheaters == null)
             this.mTheaters = new LinkedHashMap<>();
-        if (mTheaters.containsKey(theater.mId))
-            mTheaters.put(theater.mId, theater);
+        //if (mTheaters.containsKey(theater.mId))
+        mTheaters.put(theater.mId, theater);
 
         Iterator<Movie> it = dataset.keySet().iterator();
         while (it.hasNext()) {

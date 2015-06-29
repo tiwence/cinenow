@@ -11,6 +11,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -75,8 +76,10 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
 
         if (getArguments().getString("theater_id") != null) {
             mCurrentTheater = getResult().mTheaters.get(getArguments().getString("theater_id"));
+            Log.d("Current theater with id : ", mCurrentTheater.mName + ", " + mCurrentTheater.mId);
         } else if (getArguments().getSerializable("theater") != null){
             mCurrentTheater = (MovieTheater)getArguments().getSerializable("theater");
+            Log.d("Current theater : ", mCurrentTheater.mName + ", " + mCurrentTheater.mId);
             getResult().mTheaters.put(mCurrentTheater.mId, mCurrentTheater);
             ApplicationUtils.saveDataInCache(getActivity(), getResult().mTheaters, ApplicationUtils.THEATERS_FILE_NAME);
         }
@@ -134,7 +137,8 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
      *
      */
     private void configureView() {
-        if (mListViewTheater.getAdapter() == null) {
+        if (mListViewTheater.getAdapter() == null
+                || ((TheaterAdapter)mListViewTheater.getAdapter()).mDataset.isEmpty()) {
             mListViewTheater.setAdapter(new TheaterAdapter());
         } else {
             mListViewTheater.deferNotifyDataSetChanged();
@@ -246,7 +250,7 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
         private static final int TYPE_MAX_COUNT = TYPE_ALL_ITEM_SEPARATOR + 1;
 
         private LayoutInflater mInflater;
-        private LinkedHashMap<Movie, ArrayList<ShowTime>> mDataset;
+        protected LinkedHashMap<Movie, ArrayList<ShowTime>> mDataset;
 
         public TheaterAdapter() {
             if (getActivity() != null) {
@@ -349,6 +353,8 @@ public class TheaterFragment extends Fragment implements SwipeRefreshLayout.OnRe
                     } else {
                         vh.theaterDistance.setText(mCurrentTheater.mDistance + " km");
                     }
+
+                    Log.d("Configure view ", (String) vh.theaterName.getText());
                     break;
                 case TYPE_NEXT_ITEM_SEPARATOR:
                     ((TextView)convertView).setText(getString(R.string.header_next_showtimes));
