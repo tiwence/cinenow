@@ -229,6 +229,7 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         if (mIllegalState) {
             displayMoviesFeed();
         }
+
         /*if (mResult != null && mMoviesFeedFragment == null) {
             displayResult();
         }*/
@@ -393,12 +394,11 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
                     if (mIsFirstLocation) {
                         mNewLocationFound = true;
                         mIsFirstLocation = false;
-                        //Toast.makeText(FeedActivity.this, getString(R.string.location_done), Toast.LENGTH_LONG).show();
                         requestData();
-                        new Handler().post(new Runnable() {
+                        FeedActivity.this.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                ((TextView)findViewById(R.id.splashTextView)).setText(R.string.loading);
+                                ((TextView) findViewById(R.id.splashTextView)).setText(R.string.loading);
                             }
                         });
                     }
@@ -642,7 +642,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     @Override
     public boolean onNavigationItemSelected(int i, long l) {
-        makeToast(this, "Selected " + i);
         filterNextMoviesByKind(i);
         return false;
     }

@@ -28,7 +28,8 @@ public class ApplicationUtils {
     public static final String FAVORITES_MOVIES_FILE_NAME = "favorites_movies";
     public static final String SHOWTIMES_FEED_FILE_NAME = "showtimes_feed";
     public static final String FAVORITES_THEATERS_FILE_NAME = "favorites_theaters" ;
-    public static final String PLAYSTORE_URL = "https://play.google.com/apps/testing/com.tiwence.cinenow2";
+    //public static final String PLAYSTORE_URL = "https://play.google.com/apps/testing/com.tiwence.cinenow2";
+    public static final String PLAYSTORE_URL = "https://play.google.com/store/apps/details?id=com.tiwence.cinenow2";
     public static final String MOVIE_DB_API_DOC = "https://www.themoviedb.org/documentation/api";
 
     /**

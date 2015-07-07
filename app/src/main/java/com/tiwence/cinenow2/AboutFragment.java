@@ -93,11 +93,11 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
     }
 
     private void contact() {
-        Intent contactIntent = new Intent(Intent.ACTION_SEND);
-        contactIntent.setType("text/html");
-        contactIntent.putExtra(android.content.Intent.EXTRA_EMAIL, "tiwence.inc@gmail.com");
-        contactIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, this.getResources().getString(R.string.contact_subject));
-        startActivity(Intent.createChooser(contactIntent, this.getResources().getString(R.string.contact_via)));
+        final Intent emailIntent = new Intent(android.content.Intent.ACTION_SEND);
+        emailIntent.setType("plain/text");
+        emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, new String[]{"tiwence.inc@gmail.com"});
+        emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, this.getResources().getString(R.string.contact_subject));
+        startActivity(Intent.createChooser(emailIntent, this.getResources().getString(R.string.contact_via)));
     }
 
     private void shareApp() {

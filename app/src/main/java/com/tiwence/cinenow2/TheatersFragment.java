@@ -75,7 +75,9 @@ public class TheatersFragment extends Fragment implements SwipeRefreshLayout.OnR
     @Override
     public void onResume() {
         super.onResume();
-        if (getActivity() != null && ((FeedActivity) getActivity()).getMActionBar() != null) {
+        if (getActivity() != null
+                && ((FeedActivity) getActivity()).getMActionBar() != null
+                && ((FeedActivity)getActivity()).getMenu() != null) {
             ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_refresh).setVisible(true);
             ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_movies).setVisible(true);
             ((FeedActivity)getActivity()).getMenu().findItem(R.id.action_favorites_theaters).setVisible(true);

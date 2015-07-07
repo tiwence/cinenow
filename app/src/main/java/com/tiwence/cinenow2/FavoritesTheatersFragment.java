@@ -116,38 +116,24 @@ public class FavoritesTheatersFragment extends Fragment implements SwipeRefreshL
         if (mFavoritesList == null)
             mFavoritesList = new ArrayList<>();
         //Adding favorites to the main dataset
-        for (MovieTheater theater : mFavoritesList) {
-            if (getResults().mTheaters.get(theater.mId) == null) {
-                getResults().mTheaters.put(theater.mId, theater);
+        if (getResults().mTheaters != null) {
+            for (MovieTheater theater : mFavoritesList) {
+                if (getResults().mTheaters.get(theater.mId) == null) {
+                    getResults().mTheaters.put(theater.mId, theater);
+                }
             }
-        }
 
-        if (mFavoritesList.isEmpty()) {
-            displayNoDataTextView(true);
+            if (mFavoritesList.isEmpty()) {
+                displayNoDataTextView(true);
+            } else {
+                displayNoDataTextView(false);
+            }
         } else {
-            displayNoDataTextView(false);
+            displayNoDataTextView(true);
         }
 
         Collections.sort(mFavoritesList, MovieTheater.MovieTheatersDistanceComparator);
-
         mFavoritesListView.setAdapter(new FavoritesTheatersAdapter());
-
-        /*mFavoritesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                TheaterFragment tf = new TheaterFragment();
-                Bundle b = new Bundle();
-                MovieTheater theater = mFavoritesList.get(position);
-                b.putSerializable("theater", theater);
-                tf.setArguments(b);
-                getActivity().getSupportFragmentManager().beginTransaction()
-                        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right,
-                                android.R.anim.slide_in_left, android.R.anim.slide_out_right)
-                        .replace(R.id.mainContainer, tf, theater.mName)
-                        .addToBackStack(null)
-                        .commit();
-            }
-        });*/
         mSwipeRefreshLayout.setRefreshing(false);
     }
 
@@ -161,7 +147,7 @@ public class FavoritesTheatersFragment extends Fragment implements SwipeRefreshL
     public void onClick(View v) {
         if (v.getTag() != null) {
             //mSelectChoiceListener.onSelectedChoice((String)v.getTag(), null, 0);
-            ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime)v.getTag());
+            ((FeedActivity) getActivity()).showTheaterChoiceFragment((ShowTime) v.getTag());
         }
     }
 

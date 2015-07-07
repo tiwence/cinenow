@@ -170,7 +170,7 @@ public class ApiUtils {
             dest.setLatitude(theater.mLatitude);
             dest.setLongitude(theater.mLongitude);
             dest.setLongitude(theater.mLongitude);
-            theater.mDistance = location.distanceTo(dest) / 1000;
+            theater.mDistance = (double)Math.round(theater.mDistance * 100) / 100;;
         }
 
         return theater;
