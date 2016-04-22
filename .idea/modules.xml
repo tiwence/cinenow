@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/CineNow2.iml" filepath="$PROJECT_DIR$/CineNow2.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/cinenow.iml" filepath="$PROJECT_DIR$/cinenow.iml" />
     </modules>
   </component>
 </project>
-

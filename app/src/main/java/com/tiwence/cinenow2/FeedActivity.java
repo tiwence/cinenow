@@ -184,12 +184,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
 
     }
 
-    /*@Override
-    protected void onSaveInstanceState(Bundle outState) {
-        outState.putSerializable("results", mResult);
-        super.onSaveInstanceState(outState);
-    }*/
-
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -229,10 +223,6 @@ public class FeedActivity extends ActionBarActivity implements OnRetrieveQueryCo
         if (mIllegalState) {
             displayMoviesFeed();
         }
-
-        /*if (mResult != null && mMoviesFeedFragment == null) {
-            displayResult();
-        }*/
     }
 
     @Override
